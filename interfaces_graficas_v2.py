@@ -14,6 +14,7 @@ import pandas as pd
 import numpy
 # from functools import partial
 
+# esta es una prueba inicial
 
 class Validaciones:
 
