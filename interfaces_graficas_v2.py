@@ -101,7 +101,7 @@ class Validaciones:
 
 	def soloNumeros(self, numero):
 
-		if codigo =="" 
+		pass
 
 
 # class InterfazPrincipal(Frame):
