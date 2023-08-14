@@ -99,6 +99,11 @@ class Validaciones:
 		else:
 			return False
 
+	def soloNumeros(self, numero):
+
+		if codigo =="" 
+
+
 # class InterfazPrincipal(Frame):
 class InterfazPrincipal:
 
@@ -336,25 +341,40 @@ class InterfazPrincipal:
 
 	def rescatarSaldos(self, cursor):
 
+		# Retorna data frame con los clientes que deben. 
+
 		cursor.execute("SELECT COD_CLIENTE, NOMBRE_CLIENTE, CONCEPTO, SALDO FROM SALDOS")
-		lista_saldos = cursor.fetchall()
-		codigos_saldos = list(set(x[0] for x in lista_saldos))
-		codigos_saldos.sort()
-		df_saldos = pd.DataFrame(data=[[x, "", "", 0] for x in codigos_saldos],columns=["COD_CLIENTE","NOMBRE_CLIENTE", "CONCEPTO", "SALDO"])
-		for saldo in lista_saldos:
+		saldos = cursor.fetchall()
+		codigos = list(set(x[0] for x in saldos))
+		codigos.sort()
+		df_saldos = pd.DataFrame(data=[[x, "", "", 0] for x in codigos],columns=["COD_CLIENTE","NOMBRE_CLIENTE", "CONCEPTO", "SALDO"])
+
+		for saldo in saldos:
+
 			for indice, data in df_saldos.iterrows():
+
 				if saldo[0] == data[0]:
+
 					df_saldos.loc[indice,"NOMBRE_CLIENTE"]=saldo[1]
-					df_saldos.loc[indice,"CONCEPTO"]+=saldo[2]
 					df_saldos.loc[indice, "SALDO"]+=saldo[3]
+
+					# Si el saldo del moroso NO es cero, agregamos el concepto, de los contrario registramos como saldado.
+					if saldo[3]!=0:
+
+						df_saldos.loc[indice,"CONCEPTO"]+="/"+saldo[2]
+
+					else:
+
+						df_saldos.loc[indice,"CONCEPTO"]="SALDADO"
 
 		return df_saldos
 
 	@conexiones.decoradorBaseDatos
 	def interfazSaldos(self, cursor):
 
-		# ***APRENDER TREEVIEW
-		# *cuando seleccione un moroso salga un botón que se pueda abonar y saldar la deuda.
+		# MUESTRA la información de las personas que están debiendo.
+
+		# *Al SELECCIONAR un moroso salgan la info al lado, y PERMITA abonar o saldar.
 
 		def abonoCliente(event):
 
@@ -365,7 +385,7 @@ class InterfazPrincipal:
 
 		def abonarSaldo():
 
-			# datosCliente = [<int> COD_CLIENTE, <str> NOMBRE_CLIENTE, <str> CONCEPTO, <int> SALDO]
+			# MODELO: datosCliente = [<int> COD_CLIENTE, <str> NOMBRE_CLIENTE, <str> CONCEPTO, <int> SALDO]
 			# print(tree.item(tree.selection())["values"])
 			datosCliente = pd.Series(index=["CODIGO", "NOMBRE", "CONCEPTO", "SALDO"],data=tree.item(tree.selection())["values"])
 			CANTIDADITEMS = datosCliente.loc["CONCEPTO"].count("/") + datosCliente.loc["CONCEPTO"].count("~") + 1
@@ -419,53 +439,57 @@ class InterfazPrincipal:
 
 			treeConcepto.place(relx=0.4, rely=0.32, width=280, height=100)
 
-
-			# *dejar solo codigo, nombre y saldo
-			# *arreglar el moroso 01 (finaliza con /)
+		# <DataFrame datos> = "COD_CLIENTE", "NOMBRE_CLIENTE" "CONCEPTO" SALDO
 		datos = self.rescatarSaldos(cursor)
+
+		valorAbono = StringVar()
+
 		interfaz = Toplevel()
-		# interfaz.geometry(f"{self.raiz.winfo_width()}x{self.raiz.winfo_height()}")
+		interfaz.geometry("900x600")
 		interfaz.focus_set()
+
+		# EXPERIMENTAL: método para poner en primer plano la interfaz
+		# interfaz.grab_set()
+		interfaz.wm_attributes("-topmost", True)
 		interfaz.bind("<Escape>", lambda _ : interfaz.destroy())
 
-		# <df> = columns=["COD_CLIENTE","NOMBRE_CLIENTE", "CONCEPTO", "SALDO"]
+		info_saldos = Frame(interfaz, bg= "red")
 
-		# Crear el Treeview
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO','SALDO'), selectmode=BROWSE)
-		# tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE','SALDO'), selectmode=BROWSE)
 
-		# Definir las columnas del Treeview
-		# tree['columns'] = ('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO','SALDO')
+		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", abonoCliente)
 
-		# agregamos la etiqueta del evento
-		tree.tag_bind("cliente_select", "<<TreeviewSelect>>", abonoCliente)
-
-		# Configurar las columnas del Treeview
+		# Configuración de columnas
 		tree.column('#0', width=40, anchor=CENTER)  # Columna oculta para los índices
 		tree.column('COD_CLIENTE', anchor=CENTER, width=50)
 		tree.column('NOMBRE_CLIENTE', anchor=CENTER, width=110)
-		tree.column('CONCEPTO', anchor=CENTER, width=400)
+		tree.column('CONCEPTO', anchor=CENTER, width=0, stretch=NO)
 		tree.column('SALDO', anchor=CENTER, width=80)
 
-		# Configurar los encabezados de las columnas
+		# Configuración de encabezados
 		tree.heading('#0', text='NUMERO', anchor=CENTER)
 		tree.heading('COD_CLIENTE', text='CODIGO', anchor=CENTER)
 		tree.heading('NOMBRE_CLIENTE', text='NOMBRE', anchor=CENTER)
 		tree.heading('CONCEPTO', text='CONCEPTO', anchor=CENTER)
 		tree.heading('SALDO', text='SALDO', anchor=CENTER)
 
-		# Insertar los datos en el Treeview
+		# Insercción de datos
 		for i in range(len(datos)):
-			tree.insert('', 'end', text=i+1, values=datos.iloc[i, :].tolist(), tags=("cliente_select",))
-			if i==len(datos)-1:
-				tree.insert('', 'end', text="TOTAL", values=["","","",datos.iloc[:,3].sum()])
+
+			tree.insert('', 'end', text=i+1, values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
+			# if i==len(datos)-1:
+			# 	tree.insert('', 'end', text="TOTAL", values=["","","",datos.iloc[:,3].sum()])
 
 		# Empacar el Treeview en la ventana
-		tree.pack()
+		tree.place(relx=0.02, relwidth=0.48, rely=0.02, relheight=0.96)
+		info_saldos..place(relx=0.5, relwidth=0.48, rely=0.02, relheight=0.96)
 
-		# boton para abonar/saldar:
-		btnAbonoCliente = Button(interfaz, text="ABONAR", command = abonarSaldo)
-		# btnSaldarCliente = Button(interfaz, text="SALDAR", command = abonarSaldo("SALDAR"))
+		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR"))
+		btnSaldarCliente.place(relx=0.45, rely=0.78)
+
+		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono )
+		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONO"))
+		btnAbonoCliente.place(relx=0.68, rely=0.88)
 
 
 	def ejecutar(self, **kwargs):
