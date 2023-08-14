@@ -457,9 +457,7 @@ class InterfazPrincipal:
 		# Insertar los datos en el Treeview
 		for i in range(len(datos)):
 			tree.insert('', 'end', text=i+1, values=datos.iloc[i, :].tolist(), tags=("cliente_select",))
-			if i==len(datos)-1:
-				tree.insert('', 'end', text="TOTAL", values=["","","",datos.iloc[:,3].sum()])
-
+		
 		# Empacar el Treeview en la ventana
 		tree.pack()
 
