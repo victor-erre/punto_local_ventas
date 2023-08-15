@@ -358,17 +358,24 @@ class InterfazPrincipal:
 
 				if saldo[0] == data[0]:
 
-					df_saldos.loc[indice,"NOMBRE_CLIENTE"]=saldo[1]
-					df_saldos.loc[indice, "SALDO"]+=saldo[3]
-
 					# Si el saldo del moroso NO es cero, agregamos el concepto, de los contrario registramos como saldado.
 					if saldo[3]!=0:
 
-						df_saldos.loc[indice,"CONCEPTO"]+="/"+saldo[2]
+						if df_saldos.loc[indice,"NOMBRE_CLIENTE"]=="":
+
+							df_saldos.loc[indice,"CONCEPTO"]=saldo[2]
+
+						else:
+
+							df_saldos.loc[indice,"CONCEPTO"]+="/"+saldo[2]
 
 					else:
 
 						df_saldos.loc[indice,"CONCEPTO"]="SALDADO"
+
+					df_saldos.loc[indice,"NOMBRE_CLIENTE"]=saldo[1]
+					df_saldos.loc[indice, "SALDO"]+=saldo[3]
+
 
 		return df_saldos
 
@@ -379,33 +386,46 @@ class InterfazPrincipal:
 
 		# *Al SELECCIONAR un moroso salgan la info al lado, y PERMITA abonar o saldar.
 
-		def abonoCliente(event):
+		def abonoCliente(event, datos):
 
 			# HABILITACION de botones y caja de texto (sólo si el cliente debe). 
 
 			cliente_det = tree.item(tree.selection())["values"]
+			concepto=""
+
+			# RESCATAMOS el concepto del cliente seleccionado.
+			for llave, datos in datos.iterrows():
+				# cuando COINCIDAN los códigos, asignamos el valor a una vble
+				if datos[0]==str(cliente_det[0]).zfill(2):
+					concepto = datos.loc["CONCEPTO"]
+					break
+
+			concepto = [i.strip() for i in str("~".join(concepto.split("/"))).split("~")]
+
+			# CONVERTIMOS el string en lista, para pasarlo al arbol con insert.
+			# concepto_conv = 
+
+			Label(info_saldos, width=15, text = cliente_det[0]).place(relx=0.45, rely=0.07)
+			Label(info_saldos, width=15, text = cliente_det[1]).place(relx=0.45, rely=0.22)
+			Label(info_saldos, width=15, text = cliente_det[3]).place(relx=0.45, rely=.68)
 
 			# COD_CLIENTE, NOMBRE_CLIENTE, CONCEPTO, SALDO
-			if cliente_det["SALDO"]!=0: 
+			concepto_det = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=NONE, show="tree")
+
+			concepto_det.column("#0", width=0, stretch=NO)
+			concepto_det.column("CANTIDAD", width=20, anchor = "e", stretch=NO)
+			concepto_det.column("ARTICULO",width=50, anchor = "e")
+			concepto_det.column("PRECIO", width=30, anchor = "e")
+
+			if cliente_det[3]!=0: 
+
 				btnSaldarCliente["state"]="normal"
 				btnAbonoCliente["state"]="normal"
 				entAbonoCliente["state"]="normal"
 
-				Label(info_saldos, width=15, text = cliente_det["COD_CLIENTE"]).place(relx=0.45, rely=0.4)
-				Label(info_saldos, width=15, text = cliente_det["NOMBRE_CLIENTE"]).place(relx=0.45, rely=0.22)
-				Label(info_saldos, width=15, text = cliente_det["SALDO"]).place(relx=0.45, rely=.68)
+				for i in concepto:
+					concepto_det.insert("", END, values=i.split())
 
-				concepto_det = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=tkinter.NONE)
-
-				concepto_det.column("#0", width=0, stretch=NO)
-				concepto_det.column("CANTIDAD", width=10)
-				concepto_det.column("ARTICULO", text = "ARTICULO", width=15)
-				concepto_det.column("PRECIO", text = "PRECIO", width=10)
-
-				for i in range()
-
-
-				concepto_det.place(relx=0.45, rely=.68, relwidth=0.4, relheight=0.38)
 
 			else:
 
@@ -413,60 +433,13 @@ class InterfazPrincipal:
 				entAbonoCliente["state"]="disabled"
 				btnSaldarCliente["state"]="disabled"
 
-		def abonarSaldo():
+				concepto_det.insert("", END, values=[0, "NULL", 0])
 
-			if 
-			# MODELO: datosCliente = [<int> COD_CLIENTE, <str> NOMBRE_CLIENTE, <str> CONCEPTO, <int> SALDO]
-			datosCliente = pd.Series(index=["CODIGO", "NOMBRE", "CONCEPTO", "SALDO"],data=tree.item(tree.selection())["values"])
-			CANTIDADITEMS = datosCliente.loc["CONCEPTO"].count("/") + datosCliente.loc["CONCEPTO"].count("~") + 1
-			# print("CANTIDADITEMS:")
-			# print(CANTIDADITEMS)
-			# print()
+			concepto_det.place(relx=0.45, rely=.4, relwidth=0.45, relheight=0.24)
 
-			# sacamos una lista dividiendo cada articulo en cantidad nombre y valor total
-			CONCEPTO = [item.strip() for sublist in [item.split('/') for item in datosCliente.loc["CONCEPTO"].split('~')] for item in sublist if item.strip()]
-			CONCEPTO = [x.split() for x in CONCEPTO]
-			# print("CONCEPTO:")
-			# print(CONCEPTO)
-			# print()
+		def abonarSaldo(tipo):
 
-			# ventanaAbono = Toplevel()
-			# ventanaAbono.geometry("500x500")
-			# ventanaAbono.title("ABONO CLIENTES")
-
-			# treeConcepto = ttk.Treeview(ventanaAbono, columns=("CANTIDAD", "ARTICULO", "PRECIO"))
-			# treeConcepto.column('#0', width=0,stretch=NO)
-			# treeConcepto.column('CANTIDAD', width=8, anchor=CENTER)
-			# treeConcepto.column('ARTICULO', width=25, anchor=CENTER)
-			# treeConcepto.column('PRECIO', width=12, anchor=CENTER)
-
-			# treeConcepto.heading('CANTIDAD', text="CANTIDAD")
-			# treeConcepto.heading('ARTICULO', text= "ARTICULO")
-			# treeConcepto.heading('PRECIO', text = "PRECIO")
-
-			# Label(ventanaAbono, text="CODIGO: ", width=20).place(relx = 0.05, rely= 0.08)
-			# Label(ventanaAbono, text=datosCliente.loc["CODIGO"]).place(relx = 0.40, rely= 0.08)
-
-			# Label(ventanaAbono, text="NOMBRE: ", width=20).place(relx=0.05, rely=0.20)
-			# Label(ventanaAbono, text=datosCliente.loc["NOMBRE"]).place(relx=0.4, rely=0.20)
-
-			# Label(ventanaAbono, text="CONCEPTO: ", width=20).place(relx=0.05, rely=0.32)
-			# # Label(ventanaAbono, text=datosCliente.loc["CONCEPTO"].replace("~", "\n--------------\n").replace("/","\n")+"\n").place(relx=0.56, rely=0.32)
-
-			# Label(ventanaAbono, text="SALDO: ", width=20).place(relx=0.05, rely=0.6)
-			# Label(ventanaAbono, text=datosCliente.loc["SALDO"]).place(relx=0.4 , rely=0.6)
-
-			# Button(ventanaAbono, text="SALDAR", width=15, anchor=CENTER, command=lambda : print("SALDAR")).place(relx=0.48, rely=0.8)
-			# Button(ventanaAbono, text="ABONAR", width=15, anchor=CENTER, command=lambda : print("ABONAR")).place(relx=0.2, rely=0.8)
-
-			# for x in range(CANTIDADITEMS):
-			# 	treeConcepto.insert("", END, values=CONCEPTO[x])
-
-			# hsb = ttk.Scrollbar(treeConcepto, orient=VERTICAL, command=treeConcepto.yview)
-			# treeConcepto.configure(yscrollcommand=hsb.set)
-			# hsb.pack(side=RIGHT, fill=Y)
-
-			# treeConcepto.place(relx=0.4, rely=0.32, width=280, height=100)
+			print("objetivo:",tipo)
 
 		# <DataFrame datos> = "COD_CLIENTE", "NOMBRE_CLIENTE" "CONCEPTO" SALDO
 		datos = self.rescatarSaldos(cursor)
@@ -482,9 +455,9 @@ class InterfazPrincipal:
 		interfaz.wm_attributes("-topmost", True)
 		interfaz.bind("<Escape>", lambda _ : interfaz.destroy())
 
-		info_saldos = Frame(interfaz, bg= "red")
+		info_saldos = Frame(interfaz)
 
-		Label(info_saldos, text="CODIGO CLIENTE", width = 15).place(relx=0.05, rely=0.4)
+		Label(info_saldos, text="CODIGO CLIENTE", width = 15).place(relx=0.05, rely=0.07)
 
 		Label(info_saldos, text="NOMBRE CLIENTE", width=15).place(relx=0.05, rely=0.22)
 
@@ -502,8 +475,7 @@ class InterfazPrincipal:
 		btnAbonoCliente.place(relx=0.68, rely=0.88)
 
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO','SALDO'), selectmode=BROWSE)
-
-		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", abonoCliente)
+		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", lambda event, datos=datos: abonoCliente(event, datos))
 
 		# Configuración de columnas
 		tree.column('#0', width=40, anchor=CENTER)  # Columna oculta para los índices
