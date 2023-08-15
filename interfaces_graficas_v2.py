@@ -384,7 +384,10 @@ class InterfazPrincipal:
 
 		# MUESTRA la información de las personas que están debiendo.
 
-		# *Al SELECCIONAR un moroso salgan la info al lado, y PERMITA abonar o saldar.
+		# *cuando se abone o salde, la info se actualice automaticamente, conservando la vista de saldos
+		# *incluir una nota cuando el check de incluir a saldo se presione.
+		# *en el detalle del saldo tenga jerarquia de fechas
+		# *cada que se abone, le reste a los articulos más antiguos.
 
 		def abonoCliente(event, datos):
 
@@ -433,13 +436,19 @@ class InterfazPrincipal:
 				entAbonoCliente["state"]="disabled"
 				btnSaldarCliente["state"]="disabled"
 
-				concepto_det.insert("", END, values=[0, "NULL", 0])
+				concepto_det.insert("", END, values=[0, "SALDADO", 0])
 
 			concepto_det.place(relx=0.45, rely=.4, relwidth=0.45, relheight=0.24)
 
-		def abonarSaldo(tipo):
+		@conexiones.decoradorBaseDatos
+		def abonarSaldo(tipo, cursor, valores):
+			if tipo == "SALDAR":
+				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valores[0]).zfill(2),))
+				codigo_fact = cursor.fetchall()
+				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (valores[0],))
+				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valores[0]).zfill(2), valores[1], codigo_fact[0][0], "SALDADO", 0) )
+				messagebox.showinfo("PAGO EXITOSO", "SE EFECTÚO EL PAGO CORRECTAMENTE")
 
-			print("objetivo:",tipo)
 
 		# <DataFrame datos> = "COD_CLIENTE", "NOMBRE_CLIENTE" "CONCEPTO" SALDO
 		datos = self.rescatarSaldos(cursor)
@@ -452,7 +461,7 @@ class InterfazPrincipal:
 
 		# EXPERIMENTAL: método para poner en primer plano la interfaz
 		# interfaz.grab_set()
-		interfaz.wm_attributes("-topmost", True)
+		# interfaz.wm_attributes("-topmost", True)
 		interfaz.bind("<Escape>", lambda _ : interfaz.destroy())
 
 		info_saldos = Frame(interfaz)
@@ -465,20 +474,12 @@ class InterfazPrincipal:
 
 		Label(info_saldos, text="SALDO", width=15).place(relx=0.05, rely=.68)
 
-		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR"))
-		btnSaldarCliente.place(relx=0.45, rely=0.78)
-
-		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
-		entAbonoCliente.place(relx=0.34, rely=0.88)
-
-		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONO"))
-		btnAbonoCliente.place(relx=0.68, rely=0.88)
 
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO','SALDO'), selectmode=BROWSE)
 		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", lambda event, datos=datos: abonoCliente(event, datos))
 
 		# Configuración de columnas
-		tree.column('#0', width=40, anchor=CENTER)  # Columna oculta para los índices
+		tree.column('#0', width=0, anchor=CENTER, stretch=NO)  # Columna oculta para los índices
 		tree.column('COD_CLIENTE', anchor=CENTER, width=50)
 		tree.column('NOMBRE_CLIENTE', anchor=CENTER, width=110)
 		tree.column('CONCEPTO', anchor=CENTER, width=0, stretch=NO)
@@ -494,7 +495,16 @@ class InterfazPrincipal:
 		# Insercción de datos
 		for i in range(len(datos)):
 
-			tree.insert('', 'end', text=i+1, values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
+			tree.insert('', 'end', text=i+1, iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
+
+		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR", tree.item(tree.selection())["values"]))
+		btnSaldarCliente.place(relx=0.45, rely=0.78)
+
+		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
+		entAbonoCliente.place(relx=0.34, rely=0.88)
+
+		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONAR", tree.item(tree.selection())["values"]))
+		btnAbonoCliente.place(relx=0.68, rely=0.88)
 
 		# Empacar el Treeview en la ventana
 		tree.place(relx=0.02, relwidth=0.48, rely=0.02, relheight=0.96)
@@ -778,7 +788,7 @@ class InterfazPrincipal:
 
 						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA")
 						# codigo_sgte = len(set([x[0] for x in cursor.fetchall()]))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], len(set([x[0] for x in cursor.fetchall()])),concepto_final, total))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get().upper() ,nombre_saldo[0], len(set([x[0] for x in cursor.fetchall()])),concepto_final, total))
 						self.entCodigoCliente.delete(0,END)
 
 					else:

@@ -1,19 +1,28 @@
 import tkinter
 from tkinter import ttk
 import random
+import pandas
+import sqlite3
+# import time
+import datetime
 
-print("PRUEBAS")
+
+def conexionProyecto():
+	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+	cursor = conexion.cursor()
+	cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
+	cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+	conexion.commit()
+	cursor.close()
+	conexion.close()
 
 def tkinterTreeview():
 
 	def seleccion(event):
+		print("arbol selection: ",arbol.selection(), "arbol item: ", arbol.item(arbol.selection()), "arbol item values: ", arbol.item(arbol.selection())["values"])
+		print("\nTIPOS:\n")
+		print("arbol selection: ",type(arbol.selection()), "arbol item: ", type(arbol.item(arbol.selection())), "arbol item values: ", type(arbol.item(arbol.selection())["values"]))
 
-		print("arbol selection")
-		print(arbol.selection())
-		print("arbol item")
-		print(arbol.item(arbol.selection()))
-		print("values")
-		print(arbol.item(arbol.selection())["values"])
 	raiz = tkinter.Tk()
 	raiz.geometry("600x600")
 	arbol = ttk.Treeview(raiz, columns=("COLOR", "CANTIDAD", "PRECIO"), selectmode=tkinter.BROWSE)
@@ -46,4 +55,14 @@ def funcionLambda():
 	prueba = funcion([2,3,5,6])
 	print(list(prueba))
 
-tkinterTreeview()
+def pruebaDataFrame():
+
+	nombres = ["victor", "idaly", "jeffrey"]
+	apellidos = ["ruiz", "lopez", "quiñonez"]
+	edades = [25, 64, 35]
+	residencias = ["palmira", "cali", "pereira"]
+	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
+
+
+# cadena = "23 Borrador 2300  ~ 43 sacapuntas 6000     ~ 98 papel 123000 / 2 tijeras 5000"
+# print([i.strip() for i in str("~".join(cadena.split("/"))).split("~")])
