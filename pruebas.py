@@ -10,8 +10,15 @@ import datetime
 def conexionProyecto():
 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 	cursor = conexion.cursor()
-	cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
-	cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+	# cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
+	# cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+	cursor.execute("SELECT SALDO FROM SALDOS WHERE NOMBRE_CLIENTE = (?)", ("cliente nueve",))
+	try:
+		saldos = cursor.fetchall()
+		print(saldos)
+		print(sum([i[0] for i in saldos]))
+	except:
+		print("ERROR")
 	conexion.commit()
 	cursor.close()
 	conexion.close()
@@ -22,6 +29,21 @@ def tkinterTreeview():
 		print("arbol selection: ",arbol.selection(), "arbol item: ", arbol.item(arbol.selection()), "arbol item values: ", arbol.item(arbol.selection())["values"])
 		print("\nTIPOS:\n")
 		print("arbol selection: ",type(arbol.selection()), "arbol item: ", type(arbol.item(arbol.selection())), "arbol item values: ", type(arbol.item(arbol.selection())["values"]))
+
+	def borrarElementoUnitario():
+		arbol.delete(arbol.selection()[0])
+
+	def borrarElementos():
+		arbol.delete(*arbol.get_children())
+
+	def imprimirElementos():
+		print(arbol.get_children())
+
+	def crearElementos():
+
+		for i in range(5):
+			arbol.insert("", tkinter.END, iid = nombre[i],text = str(i)+" "+nombre[i],values= [colores[i], random.randint(1,40), "$ "+str(1000*random.randint(10, 30))], tags= ("seleccion_item",))
+		arbol.pack(fill=tkinter.BOTH, expand=True)
 
 	raiz = tkinter.Tk()
 	raiz.geometry("600x600")
@@ -42,9 +64,13 @@ def tkinterTreeview():
 	colores = ["amarilo", "rojo", "verde", "morado", "blanco"]
 	nombre = ["primero", "segundo", "tercero", "cuarto", "quinto"]
 
-	for i in range(5):
-		arbol.insert("", tkinter.END, iid = nombre[i],text = str(i)+" "+nombre[i],values= [colores[i], random.randint(1,40), "$ "+str(1000*random.randint(10, 30))], tags= ("seleccion_item",))
-	arbol.pack(fill=tkinter.BOTH, expand=True)
+	crearElementos()
+
+	tkinter.Button(raiz, width = 12, text= "BORRAR ELEMENTO", command=borrarElementoUnitario).pack()
+	tkinter.Button(raiz, width = 12, text= "VER ELEMENTOS", command=imprimirElementos).pack()
+	tkinter.Button(raiz, width = 12, text= "REINICIAR TREEVIEW", command=borrarElementos).pack()
+
+
 
 
 	raiz.mainloop()
@@ -63,6 +89,4 @@ def pruebaDataFrame():
 	residencias = ["palmira", "cali", "pereira"]
 	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
 
-
-# cadena = "23 Borrador 2300  ~ 43 sacapuntas 6000     ~ 98 papel 123000 / 2 tijeras 5000"
-# print([i.strip() for i in str("~".join(cadena.split("/"))).split("~")])
+print(""==None)
