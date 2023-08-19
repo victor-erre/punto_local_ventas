@@ -499,10 +499,11 @@ class InterfazPrincipal:
 
 				# En orden descendente para asignarle a saldado el valor de la última factura.
 				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valor[0]).zfill(2),))
-				codigo_fact = cursor.fetchall()
+				codigo_fact = cursor.fetchone()
+				print(codigo_fact)
 
 				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor[0]).zfill(2),))
-				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor[0]).zfill(2), valor[1], codigo_fact[0][0], "SALDADO", 0) )
+				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor[0]).zfill(2), valor[1], codigo_fact[0], "SALDADO", 0) )
 
 				messagebox.showinfo("PAGO EXITOSO", "SE EFECTÚO EL PAGO CORRECTAMENTE")
 				# borrarClientesDetalle()
@@ -892,7 +893,7 @@ class InterfazPrincipal:
 				concepto_final = ' ~ '.join([' '.join(map(str, sublista)) for sublista in concepto_final])
 				total = self.listaCompra["SUB_TOTAL"].sum()
 
-				# si NO marcamos cliente nuevo y el código es de dos dígitos. verificamos.
+				# si es cliente viejo y el código es de dos dígitos. verificamos.
 				if self.boolClienteNuevo.get() == False and len(self.entCodigoCliente.get())==2:
 
 					cursor.execute("SELECT NOMBRE_CLIENTE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
@@ -902,10 +903,12 @@ class InterfazPrincipal:
 
 					if nombre_saldo:
 
-						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA")
+						# obtenemos el valor de la ultima factura, para saber cual codigo sigue
+						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC" )
+						codigo_sgte = cursor.fetchone()[0]+1
+						# si hay registro saldado borramos
 						cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get().upper(),"SALDADO"))
-						# codigo_sgte = len(set([x[0] for x in cursor.fetchall()]))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get().upper() ,nombre_saldo[0], len(set([x[0] for x in cursor.fetchall()])),concepto_final, total))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total))
 						self.entCodigoCliente.delete(0,END)
 
 					else:
@@ -921,9 +924,9 @@ class InterfazPrincipal:
 						return
 
 					else:
-						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA")
-						codigo_sgte = len(set([x[0] for x in cursor.fetchall()]))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get(), codigo_sgte,concepto_final, total))
+						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC")
+						codigo_sgte = cursor.fetchone()[0]+1
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total))
 						messagebox.showinfo(title="CREACIÓN EXITOSA", message=f"Cliente {self.entCodigoCliente.get()} creado con éxito.")
 						# self.entNombreCliente.delete(0,END)
 						self.checkIncluirSaldo.invoke()
