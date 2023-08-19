@@ -448,7 +448,6 @@ class InterfazPrincipal:
 			for i in cursor.fetchall():
 				fechas.append((i[0],conceptos_fechas[contador]))
 				contador+=1
-			print(fechas)
 
 			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
 			concepto = [i.strip() for i in str("~".join(cliente_det[2].split("/"))).split("~")]
@@ -470,11 +469,10 @@ class InterfazPrincipal:
 
 				for i in concepto:
 					concepto_det.insert("", END, values=i.split())
-					concepto_det.insert("", END, values=i.split())
 
 				# for i in fechas:
-					# concepto_det.insert("", END, iid=i[0][0:16], values=("", i[0], ""))
-					# concepto_det.insert(i[0][0:16], values=())
+				# 	concepto_det.insert("", END, iid=i[0], values=(i[0],))
+				# 	concepto_det.insert(i[0], END, values=i[1].split("~"))
 
 			else:
 
@@ -483,6 +481,7 @@ class InterfazPrincipal:
 				btnSaldarCliente["state"]="disabled"
 
 				concepto_det.insert("", END, values=[0, "SALDADO", 0])
+				# concepto_det.insert("", END, values=["SALDADO"])
 
 			concepto_det.place(relx=0.45, rely=.4, relwidth=0.45, relheight=0.24)
 
@@ -599,6 +598,13 @@ class InterfazPrincipal:
 		concepto_det.heading("CANTIDAD", text="Q", anchor = "e")
 		concepto_det.heading("ARTICULO", text="ARTICULO", anchor = "e")
 		concepto_det.heading("PRECIO", text="PRECIO", anchor = "e")
+
+		# concepto_det = ttk.Treeview(info_saldos, columns=("FECHA",))
+
+		# concepto_det.column("#0", width=10, stretch=YES)
+		# concepto_det.column("FECHA", stretch=YES)	# No ajustamos por defecto ésta columna
+
+		# concepto_det.heading("FECHA", text="FECHA")
 
 
 		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR", tree.item(tree.selection())["values"]))

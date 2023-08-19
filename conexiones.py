@@ -6,7 +6,7 @@ def decoradorBaseDatos(funcion):
 
 			conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
 			cursor = conexion.cursor()
-			funcion(self, cursor,*args)
+			funcion(self, cursor,*args, **kwargs)
 			conexion.commit()
 			cursor.close()
 			conexion.close()
