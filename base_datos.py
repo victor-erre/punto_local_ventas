@@ -102,6 +102,8 @@ def crearTablas(cursor):
 											COD_FACTURA INTEGER NOT NULL,
 											CONCEPTO TEXT NOT NULL,
 											SALDO INTEGER NOT NULL,
+											ABONO INTEGER NOT NULL DEFAULT 0,
+											COMENTARIO TEXT NOT NULL DEFAULT "NULL",
 											FECHA_SALDO DATETIME DEFAULT (DATETIME('now', 'localtime'))
 
 		)
@@ -158,7 +160,7 @@ def prueba(cursor):
 
 # ++++++++++++++++++++++++++++    INSTRUCCIÓN DE PRUEBA      +++++++++++++++++++++++++++++++++++++++++++
 
-# borrarBBDD("C:/Users/Victo/Documents/proyectos_propios/BASE_DATOS_PRUEBA.db")
+# borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 
 # crearTablas()
 

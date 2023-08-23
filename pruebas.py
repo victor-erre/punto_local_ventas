@@ -6,7 +6,6 @@ import sqlite3
 # import time
 import datetime
 
-
 def conexionProyecto():
 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 	cursor = conexion.cursor()
@@ -97,48 +96,3 @@ def tratamientoCadenas():
 	divisionPorCaracter = "~".join(frase.split("/")).split("~")
 	print(divisionPorCaracter)
 
-# tkinterTreeview()
-import tkinter as tk
-from tkinter import ttk
-
-def insert_child():
-    selected_item = tree.selection()
-    if selected_item:
-        new_item = ("", "Hija de María", "$500")
-        tree.insert(selected_item, "end", values=new_item)
-
-import tkinter as tk
-from tkinter import ttk
-
-def insert_child(item_id):
-    new_item = ("", "Registro Hijo", "$500")
-    tree.insert(item_id, "end", values=new_item)
-
-root = tk.Tk()
-root.title("TreeView con Registros Jerárquicos")
-
-tree = ttk.Treeview(root, columns=('CODIGO', 'NOMBRE', 'SALDO'), show='headings')
-
-tree.heading('CODIGO', text='CODIGO')
-tree.heading('NOMBRE', text='NOMBRE')
-tree.heading('SALDO', text='SALDO')
-
-tree.column('CODIGO', width=80)
-tree.column('NOMBRE', width=150)
-tree.column('SALDO', width=80)
-
-data = [
-    ("001", "Padre 1", "$1000"),
-    ("002", "Padre 2", "$1500")
-]
-
-for item in data:
-    parent = tree.insert("", "end", values=item)
-    tree.insert(parent, "end", values=("1", "Hijo 1", "$500"))
-    tree.insert(parent, "end", values=("2", "Hijo 2", "$700"))
-
-tree.bind("<Button-1>", lambda event: insert_child(tree.identify_row(event.y)))
-
-tree.pack()
-
-root.mainloop()

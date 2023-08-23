@@ -119,7 +119,7 @@ class InterfazPrincipal:
 	def __init__(self):
 		self.raiz = Tk()
 		self.raiz.focus_set()
-		self.raiz.geometry("400x470+200+150")
+		self.raiz.geometry("400x450+100+100")
 		self.raiz.resizable(False,False)
 		# creamos una instancia de la clase validaciones, para usar sus métodos.
 		self.validaciones = Validaciones()
@@ -141,7 +141,7 @@ class InterfazPrincipal:
 		self.menuOperacion.place(relx=0.5,rely=0.18)
 
 		self.frameOpciones = Frame(self.raiz)
-		self.frameOpciones.place(rely=0.30, relx=0, relwidth=1, relheight=.80)
+		self.frameOpciones.place(rely=0.27, relx=0, relwidth=1, relheight=.80)
 
 
 
@@ -174,10 +174,12 @@ class InterfazPrincipal:
 						print(self.boolAgregarASaldo.get())
 
 						checkClienteNuevo.place(relx=0.6, rely=0.15)
-						lblCodigoCliente.place(relx=0.05, rely=0.28)
-						self.entCodigoCliente.place(relx=0.5, rely=0.28)
+						lblCodigoCliente.place(relx=0.05, rely=0.27)
+						self.entCodigoCliente.place(relx=0.5, rely=0.27)
 						validarCodigoCliente = self.entCodigoCliente.register(self.validaciones.codigoCliente)
 						self.entCodigoCliente.config(validate="key", validatecommand=(validarCodigoCliente, "%P"))
+						lblComentarioCliente.place(relx=0.05, rely=0.5)
+						self.txtComentarioCliente.place(relx=0.5, rely=0.5, relwidth=.40, relheight=.08)
 
 					else:
 
@@ -185,6 +187,9 @@ class InterfazPrincipal:
 						lblCodigoCliente.place_forget()
 						self.entCodigoCliente.delete(0,END)
 						self.entCodigoCliente.place_forget()
+						lblComentarioCliente.place_forget()
+						self.txtComentarioCliente.delete("1.0", "end")
+						self.txtComentarioCliente.place_forget()
 
 						if self.boolClienteNuevo.get():
 							checkClienteNuevo.invoke()
@@ -197,8 +202,8 @@ class InterfazPrincipal:
 						codigo = self.generarCodigoCliente(cursor)
 						self.entCodigoCliente.insert(0, codigo)
 						self.entCodigoCliente.config(state="readonly")
-						lblNombreCliente.place(relx=0.05, rely=0.41)
-						self.entNombreCliente.place(relx=0.5, rely=0.41)
+						lblNombreCliente.place(relx=0.05, rely=0.39)
+						self.entNombreCliente.place(relx=0.5, rely=0.39)
 					else:
 						lblNombreCliente.place_forget()
 						self.entNombreCliente.delete(0,END)
@@ -222,6 +227,7 @@ class InterfazPrincipal:
 			codigoArticulo = StringVar()
 			codigoCliente = StringVar()
 			nombreCliente = StringVar()
+			# comentario = StringVar()
 			self.boolAgregarASaldo = BooleanVar()
 			self.boolClienteNuevo = BooleanVar()
 
@@ -249,13 +255,18 @@ class InterfazPrincipal:
 
 			self.entNombreCliente = Entry(self.frameOpciones, textvariable = nombreCliente)
 
+			lblComentarioCliente = Label(self.frameOpciones, text="COMENTARIO (opcional)")
+
+			self.txtComentarioCliente = Text(self.frameOpciones)
+
+			Button(self.frameOpciones,text="BORRAR COMPRA",command=borrarCompra).place(relx=0.42,rely=0.63)
+
 			Button(self.frameOpciones, text="MODIFICAR", command=self.modificarArticulo).place(relx=0.1, rely=0.74)
 
 			Button(self.frameOpciones, text="FINALIZAR", command= self.compra).place(relx=0.45, rely=0.74)
 
 			Button(self.frameOpciones, text= "SALDOS", command=self.interfazSaldos).place(relx=0.80, rely=0.74)
 
-			Button(self.frameOpciones,text="BORRAR COMPRA",command=borrarCompra).place(relx=0.42,rely=0.59)
 
 	
 		elif self.menuOperacion.get() == "SERVICIO_PUBLICO":
@@ -345,14 +356,19 @@ class InterfazPrincipal:
 
 	def rescatarSaldos(self, cursor):
 
-		# Retorna data frame con los clientes que deben. 
+		'''
+		RETORNA data frame con los clientes que deben. 
+		'''
 
-		cursor.execute("SELECT COD_CLIENTE, NOMBRE_CLIENTE, CONCEPTO, SALDO FROM SALDOS")
+		cursor.execute("SELECT COD_CLIENTE, NOMBRE_CLIENTE, CONCEPTO, SALDO, ABONO, COMENTARIO FROM SALDOS")
 		saldos = cursor.fetchall()
+
+		# Obtengo los códigos únicos, para listarlos y ordenarlos. 
 		codigos = list(set(x[0] for x in saldos))
 		codigos.sort()
-		df_saldos = pd.DataFrame(data=[[x, "", "", 0] for x in codigos],columns=["COD_CLIENTE","NOMBRE_CLIENTE", "CONCEPTO", "SALDO"])
+		df_saldos = pd.DataFrame(data=[[x, "", "", 0, 0, ""] for x in codigos],columns=["CODIGO", "NOMBRE", "CONCEPTO", "SALDO", "ABONO", "COMENTARIO"])
 
+		# ORGANIZO la info de la BBDD en el DataFrame
 		for saldo in saldos:
 
 			for indice, data in df_saldos.iterrows():
@@ -360,31 +376,47 @@ class InterfazPrincipal:
 				if saldo[0] == data[0]:
 
 					# Si el saldo del moroso NO es cero, agregamos el concepto, de los contrario registramos como saldado.
+					# NOTA: sólo debe haber un registro como saldado en la BBDD
 					if saldo[3]!=0:
 
-						# si es lla primera factura, la agregamos tal cual.
-						if df_saldos.loc[indice,"NOMBRE_CLIENTE"]=="":
+						# si es la primera factura, la agregamos el concepto tal cual.
+						if df_saldos.loc[indice,"NOMBRE"]=="":
 
 							df_saldos.loc[indice,"CONCEPTO"]=saldo[2]
+							df_saldos.loc[indice,"SALDO"]=saldo[3]
 
-						# si no (es de la segunda para arriba), le agregamos un separador.
+							# Comprobamos que haya algo en el comentario para agregarlo
+							if len(saldo[-1]) >= 3:
+
+								df_saldos.loc[indice, "COMENTARIO"] = saldo[5]
+
+						# si no (es la segunda vez o más), le agregamos un separador.
 						else:
 
 							df_saldos.loc[indice,"CONCEPTO"]+="/"+saldo[2]
+							df_saldos.loc[indice,"SALDO"]+=saldo[3]
+
+
+							# Comprobamos que haya algo en el rubro comentario para agregarlo
+							if len(saldo[-1]) >= 3:
+
+								df_saldos.loc[indice, "COMENTARIO"]+="~"+saldo[5]
 
 					# si el saldo de la BBDD es cero, le agregamos saldado al concepto.
-					# ACLARACIÓN: Solo debe haber un registro como saldado si el cliente no debe nada.
+					# ACLARACIÓN: Solo debe haber un registro como saldado (el cliente no debe nada).
 					else:
 
 						df_saldos.loc[indice,"CONCEPTO"]="SALDADO"
 
-					# el nombre y el saldo en cualquier caso se suma. Si es 0 pues el que está a paz
-					# le sumará otro cero. y el nombre claramente hay que copiarlo.
-					df_saldos.loc[indice,"NOMBRE_CLIENTE"]=saldo[1]
-					df_saldos.loc[indice, "SALDO"]+=saldo[3]
+					# el saldo siempre se suma, el nombre y el abono en todos los registros será el mismo
+					df_saldos.loc[indice,"NOMBRE"]=saldo[1]
+					# df_saldos.loc[indice, "SALDO"]+=saldo[3]
+					df_saldos.loc[indice, "ABONO"] = saldo[4]
 
 					# continuamos con el siguiente registro de la BBDD
 					break
+		print(df_saldos.values)
+		print(df_saldos.columns)
 
 		return df_saldos
 
@@ -397,24 +429,12 @@ class InterfazPrincipal:
 		# *cada que se abone, le reste a los articulos más antiguos. y si se abona la totalidad de una factura antigua ésta se borre.
 		# ...las filas primarias van con fecha + saldo que se debe, en las secundarias van los detalles (cantidad nombre precio)
 
-		def borrarClientesDetalle():
-
-			tree.delete(*tree.get_children())
-
-		def actualizarClienteDetalle(**valores):
-
-			'''
-			ACTUALIZAMOS el item seleccionado sin cambiar o anular la selección (tanto en la general como en la detallada)
-			'''
-			tree.item(valores["codigo"], values=(str(valores["codigo"]).zfill(2), valores["nombre"], "SALDADO", 0))
-			concepto_det.delete(*concepto_det.get_children())
-			concepto_det.insert("", END, values=[0, "SALDADO", 0])
-
 		def crearClientes(datos):
 
 			'''
 			Hacemos la insercción de acuerdo al formato y la información retornada desde `self.rescatarSaldos`
 			DEBEN ser todos los clientes que han tenido cuenta, deban o no al momento de la consulta.
+			<DataFrame datos> = "CODIGO" "NOMBRE" "CONCEPTO" SALDO ABONO "COMENTARIO"
 			'''
 
 			for i in range(len(datos)):
@@ -423,10 +443,31 @@ class InterfazPrincipal:
 
 			# Seleccionamos automaticamente el cliente ADMIN
 			tree.selection_set("00")
-			# pasamos esta variable como argumento, ya que la funcion nos pide uno posicional que sería self dentro del archivo `conexiones.py`
+			# pasamos esta variable como argumento, ya que la funcion nos pide uno posicional que sería self dentro del módulo: `conexiones.py`
 			event=""
 			imprimirDetalle(event)
 
+		def borrarClientesDetalle():
+
+			tree.delete(*tree.get_children())
+
+		def actualizarClienteDetalle(tipo ,**valores):
+
+			'''
+			ACTUALIZAMOS el item seleccionado sin cambiar o anular la selección (tanto en la general como en la detallada)
+			'''
+			# *Hacer que actualice el abono
+
+			if tipo =="SALDAR":
+
+
+				tree.item(str(valores["codigo"]).zfill(2), values=(str(valores["codigo"]).zfill(2), valores["nombre"], "SALDADO", 0, 0, ""))
+				concepto_det.delete(*concepto_det.get_children())
+				concepto_det.insert("", END, values=[0, "SALDADO", 0])
+
+			if tipo == "ABONAR":
+
+				pass
 
 		@conexiones.decoradorBaseDatos
 		def imprimirDetalle(event, cursor):
@@ -434,13 +475,12 @@ class InterfazPrincipal:
 			'''
 			INCORPORAMOS los detalles de la cuenta que se debe.
 			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo el saldo es diferente de 0). 
-			<DataFrame datos> = "cod_cliente" "nombre_cliente" cod_factura "concepto" saldo "fecha_saldo"
 			'''
 
+			# <list cliente_det> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			cliente_det = tree.item(tree.selection())["values"]
 
-			# *Que tenga jerarquia por fechas >>>>>> sugerencia: 
-			# el concepto con los valores divididos por `/` cada compra y `~` cada articulo de una factura es `cliente_det`[2]
+			# *Que tenga jerarquia por fechas >>>>>> sugerencia: ---
 			cursor.execute("SELECT FECHA_SALDO FROM SALDOS WHERE COD_CLIENTE=(?)",(str(tree.item(tree.selection())["values"][0]).zfill(2),))
 			conceptos_fechas = cliente_det[2].split("/")
 			fechas = []
@@ -449,13 +489,21 @@ class InterfazPrincipal:
 				fechas.append((i[0],conceptos_fechas[contador]))
 				contador+=1
 
-			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
-			concepto = [i.strip() for i in str("~".join(cliente_det[2].split("/"))).split("~")]
 
-			# Pasamos la info de codigo cliente, nombre cliente y saldo en forma de label's.
-			Label(info_saldos, width=15, text = cliente_det[0]).place(relx=0.45, rely=0.07)
-			Label(info_saldos, width=15, text = cliente_det[1]).place(relx=0.45, rely=0.22)
-			Label(info_saldos, width=15, text = cliente_det[3]).place(relx=0.45, rely=.68)
+
+			# el concepto con los valores divididos por `/` cada compra y `~` cada articulo de una factura es `cliente_det`[2]
+			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
+			# concepto = [i.strip() for i in str("~".join(cliente_det[2].split("/"))).split("~")]
+			concepto = [i.split() for i in cliente_det[2].replace("/","~").split("~")]
+
+			# Pasamos la info de codigo cliente, nombre cliente, comentario y saldo en forma de label's.
+			
+			Label(info_saldos, width=15, text = cliente_det[0], anchor="center").place(relx=0.50, rely=0.06)
+			Label(info_saldos, width=15, text = cliente_det[1], anchor="center").place(relx=0.5, rely=0.17)
+			# Label(info_saldos, width=20, text = cliente_det[3].replace("~", ""), anchor="center").place(relx=0.5, rely=0.5)
+			Label(info_saldos, width=15, text = cliente_det[3], anchor="center").place(relx=0.5, rely=.50)
+			Label(info_saldos, width=15, text = cliente_det[4], anchor="center").place(relx=0.5, rely=.62)
+			# Label(info_saldos, width=15, text = cliente_det[5], anchor="center").place(relx=0.5, rely=.73)
 
 			# Eliminamos detalles previos para evitar que se remonten los conceptos antiguos.
 			concepto_det.delete(*concepto_det.get_children())
@@ -468,7 +516,8 @@ class InterfazPrincipal:
 				entAbonoCliente["state"]="normal"
 
 				for i in concepto:
-					concepto_det.insert("", END, values=i.split())
+					concepto_det.insert("", END, values=i)
+					
 
 				# for i in fechas:
 				# 	concepto_det.insert("", END, iid=i[0], values=(i[0],))
@@ -483,7 +532,7 @@ class InterfazPrincipal:
 				concepto_det.insert("", END, values=[0, "SALDADO", 0])
 				# concepto_det.insert("", END, values=["SALDADO"])
 
-			concepto_det.place(relx=0.45, rely=.4, relwidth=0.45, relheight=0.24)
+			concepto_det.place(relx=0.45, rely=.28, relwidth=0.45, relheight=0.19)
 
 
 		@conexiones.decoradorBaseDatos
@@ -491,23 +540,23 @@ class InterfazPrincipal:
 
 			'''
 			<STR tipo> = "SALDAR" || "ABONAR"
-			<LIST valor> = ["cod_cliente", "nombre_cliente", "concepto", saldo]
+			<LIST valor> = ["cod_cliente", "nombre_cliente", "concepto", saldo, "comentario"]
 
 			'''
 
 			if tipo == "SALDAR":
 
-				# En orden descendente para asignarle a saldado el valor de la última factura.
+				# En orden descendente para asignarle al registro saldado el valor de la última factura.
 				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valor[0]).zfill(2),))
 				codigo_fact = cursor.fetchone()
-				print(codigo_fact)
 
 				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor[0]).zfill(2),))
 				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor[0]).zfill(2), valor[1], codigo_fact[0], "SALDADO", 0) )
 
 				messagebox.showinfo("PAGO EXITOSO", "SE EFECTÚO EL PAGO CORRECTAMENTE")
 				# borrarClientesDetalle()
-				actualizarClienteDetalle(codigo = valor[0], nombre = valor[1], factura = codigo_fact[0][0])
+				# actualizarClienteDetalle(codigo = valor[0], nombre = valor[1], factura = codigo_fact[0][0], comentario=valor[4])
+				actualizarClienteDetalle("SALDAR", codigo = valor[0], nombre = valor[1])
 				# crearClientes(self.rescatarSaldos(cursor))
 		
 
@@ -516,36 +565,35 @@ class InterfazPrincipal:
 				if entAbonoCliente.get()!="" and int(entAbonoCliente.get())%100==0:
 
 					codigo_cliente = str(valor[0]).zfill(2)
-					cursor.execute("SELECT SALDO, COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
+
+					# OBTENEMOS el el saldo de cada factura más sus códigos y el abono (que en todas es el mismo)
+					cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
 					saldosBD = cursor.fetchall()
 					valor_abonar = int(entAbonoCliente.get())
 					saldo_total = sum([i[0] for i in saldosBD])
+					abono = saldosBD[0][2]
 
 					if valor_abonar ==0:
 						return
 
-					# si el abono es menor a lo que debe, se mira hasta cual factura se borra 
-					if valor_abonar <= saldo_total:
+					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
+					if valor_abonar <= saldo_total + abono:
 
-						# se inicializa la factura en 0, y el codigo de la factura en ""
-						sumatoria_saldos = 0
-						numero_factura = 0
-						codigo_factura = ""
+						# si es el mismo, llamamos de vuelta a la funcion pero con el tipo `SALDAR`
+						if valor_abonar == saldo_total + abono:
 
-						for i in range(len(saldosBD)):
-							if sumatoria_saldos>=valor_abonar:
-								codigo_factura=saldosBD[i][1]
-								break
-							else:
-								numero_factura+=1
-								sumatoria_saldos+=saldosBD[i][0]
+							abonarSaldo("SALDAR", tree.item(tree.selection())["values"])
 
-						print("numero_factura: ",numero_factura)
-						print("codigo_factura",codigo_factura)
-						print("sumatoria_saldos",sumatoria_saldos)
-						cursor.execute("SELECT * FROM SALDOS WHERE COD_CLIENTE = (?) AND COD_FACTURA BETWEEN (?) AND (?)", (codigo_cliente, 0, codigo_factura))
-						print("cursor.fetchall()",cursor.fetchall())
-						print("se efectúa el abono por {}".format(valor_abonar))
+						else:
+
+							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono+valor_abonar, codigo_cliente))
+
+						# print("numero_factura: ",numero_factura)
+						# print("codigo_factura",codigo_factura)
+						# print("sumatoria_saldos",sumatoria_saldos)
+						# cursor.execute("SELECT * FROM SALDOS WHERE COD_CLIENTE = (?) AND COD_FACTURA BETWEEN (?) AND (?)", (codigo_cliente, 0, codigo_factura))
+						# print("cursor.fetchall()",cursor.fetchall())
+						# print("se efectúa el abono por {}".format(valor_abonar))
 
 					else:
 						messagebox.showwarning("ERROR", "No se puede abonar más del valor del saldo total.")
@@ -561,26 +609,27 @@ class InterfazPrincipal:
 		# interfaz.grab_set()
 		# interfaz.wm_attributes("-topmost", True)
 
-
 		interfaz.bind("<Escape>", lambda _ : interfaz.destroy())
-
 		info_saldos = Frame(interfaz)
+		Label(info_saldos, text="CODIGO CLIENTE", width = 15, anchor="e").place(relx=0.05, rely=0.06)
+		Label(info_saldos, text="NOMBRE CLIENTE", width=15, anchor="e").place(relx=0.05, rely=0.17)
+		Label(info_saldos, text="CONCEPTO", width=15, anchor="e").place(relx=0.05, rely=.28)
+		Label(info_saldos, text="SALDO", width=15, anchor="e").place(relx=0.05, rely=.50)
+		Label(info_saldos, text="ABONO", width=15, anchor="e").place(relx=0.05, rely=.62)
+		Label(info_saldos, text="COMENTARIO", width=15, anchor="e").place(relx=0.05, rely=.73)
 
-		Label(info_saldos, text="CODIGO CLIENTE", width = 15).place(relx=0.05, rely=0.07)
-		Label(info_saldos, text="NOMBRE CLIENTE", width=15).place(relx=0.05, rely=0.22)
-		Label(info_saldos, text="CONCEPTO", width=15).place(relx=0.05, rely=.40)
-		Label(info_saldos, text="SALDO", width=15).place(relx=0.05, rely=.68)
-
-		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO','SALDO'), selectmode=BROWSE)
+		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', "SALDO", "ABONO", "COMENTARIO"), selectmode=BROWSE)
 
 		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", lambda event: imprimirDetalle(event))
 
-		# Configuración de columnas
+		# Configuración de columnas (ocultamos concepto y comentario)
 		tree.column('#0', width=0, anchor=CENTER, stretch=NO)  # Columna oculta para los índices
 		tree.column('COD_CLIENTE', anchor=CENTER, width=50)
 		tree.column('NOMBRE_CLIENTE', anchor=CENTER, width=110)
 		tree.column('CONCEPTO', anchor=CENTER, width=0, stretch=NO)
 		tree.column('SALDO', anchor=CENTER, width=80)
+		tree.column('ABONO', anchor=CENTER, width=0, stretch=NO)
+		tree.column("COMENTARIO", anchor=CENTER, width = 0, stretch=NO)
 
 		# Configuración de encabezados
 		tree.heading('#0', text='NUMERO', anchor=CENTER)
@@ -588,6 +637,9 @@ class InterfazPrincipal:
 		tree.heading('NOMBRE_CLIENTE', text='NOMBRE', anchor=CENTER)
 		tree.heading('CONCEPTO', text='CONCEPTO', anchor=CENTER)
 		tree.heading('SALDO', text='SALDO', anchor=CENTER)
+		tree.heading('ABONO', text='ABONO', anchor=CENTER)
+		tree.heading('COMENTARIO', text='COMENTARIO', anchor=CENTER)
+
 
 		concepto_det = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=NONE)
 
@@ -609,14 +661,14 @@ class InterfazPrincipal:
 
 
 		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR", tree.item(tree.selection())["values"]))
-		btnSaldarCliente.place(relx=0.45, rely=0.78)
+		btnSaldarCliente.place(relx=0.45, rely=0.8)
 
 
 		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONAR", tree.item(tree.selection())["values"]))
-		btnAbonoCliente.place(relx=0.68, rely=0.88)
+		btnAbonoCliente.place(relx=0.68, rely=0.9)
 
 		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
-		entAbonoCliente.place(relx=0.34, rely=0.88)
+		entAbonoCliente.place(relx=0.34, rely=0.9)
 
 		# Insercción de datos
 		crearClientes(self.rescatarSaldos(cursor))
@@ -866,9 +918,9 @@ class InterfazPrincipal:
 
 		# *incluir una nota cuando el check de incluir a saldo se presione.
 
-		if self.menuOperacion.current()==0 or self.menuOperacion.current() ==1:
-			self.ejecutar()
-			return
+		# if self.menuOperacion.current()==0 or self.menuOperacion.current() ==1:
+		# 	self.ejecutar()
+		# 	return
 
 		# generar la factura en el programa y registrarla en una tabla nueva (compras) en BBDD, debe contener:
 		# codigoCompra-nombre-marca-cantidadComprada-utilidad.
@@ -885,6 +937,8 @@ class InterfazPrincipal:
 
 			lista_cod = set(cursor.fetchall())
 
+
+			# Primero hacemos la inserccion en saldos, si no es para pago inmediato.
 			if self.boolAgregarASaldo.get():
 
 				# self.listaCompra = pd.DataFrame(columns = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
@@ -906,18 +960,26 @@ class InterfazPrincipal:
 						# obtenemos el valor de la ultima factura, para saber cual codigo sigue
 						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC" )
 						codigo_sgte = cursor.fetchone()[0]+1
-						# si hay registro saldado borramos
-						cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get().upper(),"SALDADO"))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total))
+
+						# si hay registro como saldado lo borramos, pero antes obtenemos el abono a la cuenta (debe ser el mismo en todos los registros)
+						cursor.execute("SELECT CONCEPTO, ABONO FROM SALDOS WHERE COD_CLIENTE=(?) ORDER BY COD_FACTURA DESC",(self.entCodigoCliente.get(),))
+						concepto_abono=cursor.fetchone()
+
+						if concepto_abono[0]=="SALDADO":
+							cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
+
+						# cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get(),"SALDADO"))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end")))
 						self.entCodigoCliente.delete(0,END)
+						self.txtComentarioCliente.delete("1.0", "end")
 
 					else:
 						messagebox.showwarning(title="ERROR", message=f"No existe deudor con el código {self.entCodigoCliente.get()}")
 						self.entCodigoCliente.delete(0, END)
+						self.txtComentarioCliente.delete("1.0", "end")
 						return
-					# else:)
 
-				# si es cliente nuevo:
+				# si es cliente nuevo, la condición para registrar es que tenga de 4 a 20 caracteres
 				elif self.boolClienteNuevo.get():
 					if (len(self.entNombreCliente.get())<4 or len(self.entNombreCliente.get())>20):
 						messagebox.showwarning(title= "ERROR", message = "El nombre no cumple con los requisitos. (entre 6 y 20 caracteres)")
@@ -926,14 +988,14 @@ class InterfazPrincipal:
 					else:
 						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC")
 						codigo_sgte = cursor.fetchone()[0]+1
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end")))
 						messagebox.showinfo(title="CREACIÓN EXITOSA", message=f"Cliente {self.entCodigoCliente.get()} creado con éxito.")
-						# self.entNombreCliente.delete(0,END)
 						self.checkIncluirSaldo.invoke()
 
 				elif self.entCodigoCliente.get() not in lista_cod:
 					messagebox.showinfo(title="ERROR", message="El código no pertenece a ningun morador.")
-					self.entCodigoCliente.delete(0, END)
+					self.checkIncluirSaldo.invoke()
+					# self.entCodigoCliente.delete(0, END)
 					return
 
 
