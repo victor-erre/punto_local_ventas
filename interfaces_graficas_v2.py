@@ -133,15 +133,15 @@ class InterfazPrincipal:
 
 		# ++ CREACIÓN WIDGETS; INTERFAZ PRINCIPAL: 
 
-		Label(self.raiz, text=time.strftime("%d de %B")).place(relx=0.15,rely=0.05)
-		Label(self.raiz, text="PAPELERÍA VALERIA").place(relx=0.5,rely=0.05)
+		Label(self.raiz, text=time.strftime("%d de %B")).place(relx=0.15,rely=0.03)
+		Label(self.raiz, text="PAPELERÍA VALERIA").place(relx=0.5,rely=0.03)
 
-		Label(self.raiz, text="OPERACIÓN").place(relx=0.05, rely=0.20)
+		Label(self.raiz, text="OPERACIÓN").place(relx=0.05, rely=0.12)
 		self.menuOperacion = ttk.Combobox(self.raiz, values = ["SERVICIO_PUBLICO","RECARGA","COMPRA","ADMINISTRACION", "SALDOS"], state="readonly")
-		self.menuOperacion.place(relx=0.5,rely=0.18)
+		self.menuOperacion.place(relx=0.5,rely=0.12)
 
 		self.frameOpciones = Frame(self.raiz)
-		self.frameOpciones.place(rely=0.27, relx=0, relwidth=1, relheight=.80)
+		self.frameOpciones.place(rely=0.20, relx=0, relwidth=1, relheight=.80)
 
 
 
@@ -171,7 +171,6 @@ class InterfazPrincipal:
 
 					# si selecciona la opcion incluir a saldo, activa casillo cliente nuevo y el entry Uno de codigo cliente
 					if self.boolAgregarASaldo.get():
-						print(self.boolAgregarASaldo.get())
 
 						checkClienteNuevo.place(relx=0.6, rely=0.15)
 						lblCodigoCliente.place(relx=0.05, rely=0.27)
@@ -227,14 +226,18 @@ class InterfazPrincipal:
 			codigoArticulo = StringVar()
 			codigoCliente = StringVar()
 			nombreCliente = StringVar()
+			self.facturaImpresa = BooleanVar()
 			# comentario = StringVar()
 			self.boolAgregarASaldo = BooleanVar()
 			self.boolClienteNuevo = BooleanVar()
 
+			facturaImpresa = Checkbutton(self.frameOpciones,text="Imprimir factura", variable = self.facturaImpresa, onvalue=1, offvalue=0)
+			facturaImpresa.place(relx=0.3, rely=.03)
+
 			lblCodigo = Label(self.frameOpciones, text="CÓDIGO ARTICULO").place(relx=0.05, rely=0.02)
 
 			entCodigo = Entry(self.frameOpciones, textvariable = codigoArticulo, width=10)
-			entCodigo.place(relx=0.50, rely=0.02)
+			entCodigo.place(relx=0.50, rely=0.12)
 			validarCodigo = entCodigo.register(self.validaciones.codigoArticulo)
 			entCodigo.config(validate = "key", validatecommand = (validarCodigo,'%P'))
 			entCodigo.bind("<KeyRelease>", lambda _:verificarLongitud(_))
@@ -385,22 +388,11 @@ class InterfazPrincipal:
 							df_saldos.loc[indice,"CONCEPTO"]=saldo[2]
 							df_saldos.loc[indice,"SALDO"]=saldo[3]
 
-							# Comprobamos que haya algo en el comentario para agregarlo
-							if len(saldo[-1]) >= 3:
-
-								df_saldos.loc[indice, "COMENTARIO"] = saldo[5]
-
 						# si no (es la segunda vez o más), le agregamos un separador.
 						else:
 
 							df_saldos.loc[indice,"CONCEPTO"]+="/"+saldo[2]
 							df_saldos.loc[indice,"SALDO"]+=saldo[3]
-
-
-							# Comprobamos que haya algo en el rubro comentario para agregarlo
-							if len(saldo[-1]) >= 3:
-
-								df_saldos.loc[indice, "COMENTARIO"]+="~"+saldo[5]
 
 					# si el saldo de la BBDD es cero, le agregamos saldado al concepto.
 					# ACLARACIÓN: Solo debe haber un registro como saldado (el cliente no debe nada).
@@ -408,66 +400,30 @@ class InterfazPrincipal:
 
 						df_saldos.loc[indice,"CONCEPTO"]="SALDADO"
 
+					if len(saldo[-1]) >= 3:
+
+								df_saldos.loc[indice, "COMENTARIO"] += saldo[5]
+
 					# el saldo siempre se suma, el nombre y el abono en todos los registros será el mismo
 					df_saldos.loc[indice,"NOMBRE"]=saldo[1]
 					# df_saldos.loc[indice, "SALDO"]+=saldo[3]
 					df_saldos.loc[indice, "ABONO"] = saldo[4]
 
-					# continuamos con el siguiente registro de la BBDD
+					# al coincidir el elemento de la lista con el del df, rompemos y continuamos con el siguiente registro de la BBDD
 					break
-		print(df_saldos.values)
-		print(df_saldos.columns)
 
 		return df_saldos
 
 	@conexiones.decoradorBaseDatos
 	def interfazSaldos(self, cursor):
 
-		# MUESTRA la información de las personas que están debiendo.
-
-		# *cuando se abone o salde, `<TREEVIEW tree>` `<FRAME info_saldos>` se actualice automaticamente (<TOPLEVEL interfaz> conserve su predominio)
-		# *cada que se abone, le reste a los articulos más antiguos. y si se abona la totalidad de una factura antigua ésta se borre.
-		# ...las filas primarias van con fecha + saldo que se debe, en las secundarias van los detalles (cantidad nombre precio)
-
-		def crearClientes(datos):
-
-			'''
-			Hacemos la insercción de acuerdo al formato y la información retornada desde `self.rescatarSaldos`
-			DEBEN ser todos los clientes que han tenido cuenta, deban o no al momento de la consulta.
-			<DataFrame datos> = "CODIGO" "NOMBRE" "CONCEPTO" SALDO ABONO "COMENTARIO"
-			'''
-
-			for i in range(len(datos)):
-
-				tree.insert('', 'end', iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
-
-			# Seleccionamos automaticamente el cliente ADMIN
-			tree.selection_set("00")
-			# pasamos esta variable como argumento, ya que la funcion nos pide uno posicional que sería self dentro del módulo: `conexiones.py`
-			event=""
-			imprimirDetalle(event)
-
-		def borrarClientesDetalle():
-
-			tree.delete(*tree.get_children())
-
-		def actualizarClienteDetalle(tipo ,**valores):
-
-			'''
-			ACTUALIZAMOS el item seleccionado sin cambiar o anular la selección (tanto en la general como en la detallada)
-			'''
-			# *Hacer que actualice el abono
-
-			if tipo =="SALDAR":
-
-
-				tree.item(str(valores["codigo"]).zfill(2), values=(str(valores["codigo"]).zfill(2), valores["nombre"], "SALDADO", 0, 0, ""))
-				concepto_det.delete(*concepto_det.get_children())
-				concepto_det.insert("", END, values=[0, "SALDADO", 0])
-
-			if tipo == "ABONAR":
-
-				pass
+		'''
+		 MUESTRA la información de las personas que están debiendo.
+		 métodos:
+		 	imprimirDetalle ---> para cuando se selecciona un cliente
+		 	abonarSaldo ---> para cuando seleccionamos abonar o saldar la cuenta de un cliente
+		'''
+		# *ajustar los comentarios del cliente seleccionado
 
 		@conexiones.decoradorBaseDatos
 		def imprimirDetalle(event, cursor):
@@ -475,41 +431,27 @@ class InterfazPrincipal:
 			'''
 			INCORPORAMOS los detalles de la cuenta que se debe.
 			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo el saldo es diferente de 0). 
+			<list valores_interfaz> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
+			<list concepto> = [(CANTIDAD "NOMBRE_ARTICULO" PRECIO_TOTAL), ...]
 			'''
 
-			# <list cliente_det> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
-			cliente_det = tree.item(tree.selection())["values"]
+			valores_interfaz = tree.item(tree.selection())["values"]
 
-			# *Que tenga jerarquia por fechas >>>>>> sugerencia: ---
-			cursor.execute("SELECT FECHA_SALDO FROM SALDOS WHERE COD_CLIENTE=(?)",(str(tree.item(tree.selection())["values"][0]).zfill(2),))
-			conceptos_fechas = cliente_det[2].split("/")
-			fechas = []
-			contador = 0
-			for i in cursor.fetchall():
-				fechas.append((i[0],conceptos_fechas[contador]))
-				contador+=1
+			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios):
+			concepto = [i.split() for i in valores_interfaz[2].replace("/","~").split("~")]
 
-
-
-			# el concepto con los valores divididos por `/` cada compra y `~` cada articulo de una factura es `cliente_det`[2]
-			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
-			# concepto = [i.strip() for i in str("~".join(cliente_det[2].split("/"))).split("~")]
-			concepto = [i.split() for i in cliente_det[2].replace("/","~").split("~")]
-
-			# Pasamos la info de codigo cliente, nombre cliente, comentario y saldo en forma de label's.
-			
-			Label(info_saldos, width=15, text = cliente_det[0], anchor="center").place(relx=0.50, rely=0.06)
-			Label(info_saldos, width=15, text = cliente_det[1], anchor="center").place(relx=0.5, rely=0.17)
-			# Label(info_saldos, width=20, text = cliente_det[3].replace("~", ""), anchor="center").place(relx=0.5, rely=0.5)
-			Label(info_saldos, width=15, text = cliente_det[3], anchor="center").place(relx=0.5, rely=.50)
-			Label(info_saldos, width=15, text = cliente_det[4], anchor="center").place(relx=0.5, rely=.62)
-			# Label(info_saldos, width=15, text = cliente_det[5], anchor="center").place(relx=0.5, rely=.73)
+			# Pasamos la info de codigo cliente, nombre cliente, comentario y saldo en forma de label's:
+			Label(info_saldos, width=15, text = valores_interfaz[0], anchor="center").place(relx=0.50, rely=0.06)
+			Label(info_saldos, width=15, text = valores_interfaz[1], anchor="center").place(relx=0.5, rely=0.17)
+			Label(info_saldos, width=15, text = valores_interfaz[3], anchor="center").place(relx=0.5, rely=.50)
+			Label(info_saldos, width=15, text = valores_interfaz[4], anchor="center").place(relx=0.5, rely=.62)
+			Label(info_saldos, width=20, height=1, text = valores_interfaz[5], anchor="center").place(relx=0.5, rely=0.73)
 
 			# Eliminamos detalles previos para evitar que se remonten los conceptos antiguos.
 			concepto_det.delete(*concepto_det.get_children())
 
 			# Tratamos la insercción y manejo de los botones inferiores + entrada de acuerdo a si es cero o no el saldo.
-			if cliente_det[3]!=0: 
+			if valores_interfaz[3]!=0: 
 
 				btnSaldarCliente["state"]="normal"
 				btnAbonoCliente["state"]="normal"
@@ -518,11 +460,6 @@ class InterfazPrincipal:
 				for i in concepto:
 					concepto_det.insert("", END, values=i)
 					
-
-				# for i in fechas:
-				# 	concepto_det.insert("", END, iid=i[0], values=(i[0],))
-				# 	concepto_det.insert(i[0], END, values=i[1].split("~"))
-
 			else:
 
 				btnAbonoCliente["state"]="disabled"
@@ -530,7 +467,6 @@ class InterfazPrincipal:
 				btnSaldarCliente["state"]="disabled"
 
 				concepto_det.insert("", END, values=[0, "SALDADO", 0])
-				# concepto_det.insert("", END, values=["SALDADO"])
 
 			concepto_det.place(relx=0.45, rely=.28, relwidth=0.45, relheight=0.19)
 
@@ -553,11 +489,12 @@ class InterfazPrincipal:
 				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor[0]).zfill(2),))
 				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor[0]).zfill(2), valor[1], codigo_fact[0], "SALDADO", 0) )
 
-				messagebox.showinfo("PAGO EXITOSO", "SE EFECTÚO EL PAGO CORRECTAMENTE")
-				# borrarClientesDetalle()
-				# actualizarClienteDetalle(codigo = valor[0], nombre = valor[1], factura = codigo_fact[0][0], comentario=valor[4])
-				actualizarClienteDetalle("SALDAR", codigo = valor[0], nombre = valor[1])
-				# crearClientes(self.rescatarSaldos(cursor))
+				messagebox.showinfo("PAGO EXITOSO", "SE SALDÓ LA CUENTA CON EL CLIENTE {}".format(valor[1]), parent=interfaz)
+				# actualizarClienteDetalle("SALDAR", codigo = valor[0], nombre = valor[1], abono= 0, saldo=0)
+
+				tree.item(str(valor[0]).zfill(2), values=(str(valor[0]).zfill(2), valor[1], "SALDADO", 0, 0, ""))
+				concepto_det.delete(*concepto_det.get_children())
+				concepto_det.insert("", END, values=[0, "SALDADO", 0])
 		
 
 			elif tipo == "ABONAR":
@@ -577,36 +514,40 @@ class InterfazPrincipal:
 						return
 
 					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
-					if valor_abonar <= saldo_total + abono:
+					if valor_abonar <= saldo_total - abono:
 
 						# si es el mismo, llamamos de vuelta a la funcion pero con el tipo `SALDAR`
-						if valor_abonar == saldo_total + abono:
+						if valor_abonar == saldo_total - abono:
 
 							abonarSaldo("SALDAR", tree.item(tree.selection())["values"])
 
 						else:
 
 							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono+valor_abonar, codigo_cliente))
+							# actualizarClienteDetalle("ABONAR", abono=abono+valor_abonar, saldo = saldo_total)
+							tree.item(str(valor[0]).zfill(2), values=(str(valor[0]).zfill(2), valor[1], valor[2], valor[3], abono+valor_abonar, valor[5]))
 
-						# print("numero_factura: ",numero_factura)
-						# print("codigo_factura",codigo_factura)
-						# print("sumatoria_saldos",sumatoria_saldos)
-						# cursor.execute("SELECT * FROM SALDOS WHERE COD_CLIENTE = (?) AND COD_FACTURA BETWEEN (?) AND (?)", (codigo_cliente, 0, codigo_factura))
-						# print("cursor.fetchall()",cursor.fetchall())
-						# print("se efectúa el abono por {}".format(valor_abonar))
 
 					else:
-						messagebox.showwarning("ERROR", "No se puede abonar más del valor del saldo total.")
+						entAbonoCliente.delete(0, "end")
+						messagebox.showwarning("ERROR", "No se puede abonar más del valor del saldo total.", parent=interfaz)
+						return
 
+
+			Label(info_saldos, width=15, text = tree.item(tree.selection())["values"][3], anchor="center").place(relx=0.5, rely=.5)
+			Label(info_saldos, width=15, text = tree.item(tree.selection())["values"][4], anchor="center").place(relx=0.5, rely=.62)
+			Label(info_saldos, width=20, height=3, text = tree.item(tree.selection())["values"][5], anchor="center").place(relx=0.5, rely=0.73)
+
+			entAbonoCliente.delete(0, "end")
 
 		valorAbono = StringVar()
 
-		interfaz = Toplevel()
+		interfaz = Toplevel(self.raiz)
 		interfaz.geometry("900x600")
 		interfaz.focus_set()
 
 		# EXPERIMENTAL: método para poner en primer plano la interfaz
-		# interfaz.grab_set()
+		interfaz.grab_set()
 		# interfaz.wm_attributes("-topmost", True)
 
 		interfaz.bind("<Escape>", lambda _ : interfaz.destroy())
@@ -640,7 +581,7 @@ class InterfazPrincipal:
 		tree.heading('ABONO', text='ABONO', anchor=CENTER)
 		tree.heading('COMENTARIO', text='COMENTARIO', anchor=CENTER)
 
-
+		# Arbol ubicado en la información detallada del cliente
 		concepto_det = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=NONE)
 
 		concepto_det.column("#0", width=0, stretch=NO)
@@ -651,14 +592,6 @@ class InterfazPrincipal:
 		concepto_det.heading("CANTIDAD", text="Q", anchor = "e")
 		concepto_det.heading("ARTICULO", text="ARTICULO", anchor = "e")
 		concepto_det.heading("PRECIO", text="PRECIO", anchor = "e")
-
-		# concepto_det = ttk.Treeview(info_saldos, columns=("FECHA",))
-
-		# concepto_det.column("#0", width=10, stretch=YES)
-		# concepto_det.column("FECHA", stretch=YES)	# No ajustamos por defecto ésta columna
-
-		# concepto_det.heading("FECHA", text="FECHA")
-
 
 		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR", tree.item(tree.selection())["values"]))
 		btnSaldarCliente.place(relx=0.45, rely=0.8)
@@ -671,7 +604,17 @@ class InterfazPrincipal:
 		entAbonoCliente.place(relx=0.34, rely=0.9)
 
 		# Insercción de datos
-		crearClientes(self.rescatarSaldos(cursor))
+		datos = self.rescatarSaldos(cursor)
+
+		for i in range(len(datos)):
+
+			tree.insert('', 'end', iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
+
+		# Seleccionamos automaticamente el cliente ADMIN
+		tree.selection_set("00")
+
+		# Pasamos como argumento `None` ya que la funcion nos pide un argumento posicional (sería self dentro del módulo: `conexiones.py`)
+		imprimirDetalle(None)
 
 		# Empaquetar el Treeview y el frame en la ventana de saldos.
 		info_saldos.place(relx=0.5, relwidth=0.48, rely=0.02, relheight=0.96)
@@ -969,7 +912,7 @@ class InterfazPrincipal:
 							cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
 
 						# cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get(),"SALDADO"))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end")))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end").upper()))
 						self.entCodigoCliente.delete(0,END)
 						self.txtComentarioCliente.delete("1.0", "end")
 
@@ -988,7 +931,7 @@ class InterfazPrincipal:
 					else:
 						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC")
 						codigo_sgte = cursor.fetchone()[0]+1
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end")))
+						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end").upper()))
 						messagebox.showinfo(title="CREACIÓN EXITOSA", message=f"Cliente {self.entCodigoCliente.get()} creado con éxito.")
 						self.checkIncluirSaldo.invoke()
 
@@ -1022,23 +965,28 @@ class InterfazPrincipal:
 
 			# pregunta = messagebox.askquestion(title="COMPRA",message=f"Total a pagar: $ {sum( i[4] for i in self.listaCompra)}\n¿Deseas imprimir la factura?")
 			total = self.listaCompra["SUB_TOTAL"].sum()
-			pregunta = messagebox.askquestion(title="COMPRA",message=f"Total a pagar: $ {total}\n¿Deseas imprimir la factura?")
 
-			if pregunta == "no":
-				pass
-			else:
-				# ***APRENDER PDF FORMATO PEQUEÑO
-				factura = ""
-				for articulo in lista_factura:
-				    for campo in articulo:
-				        factura += str(campo) + "\t"
-				    factura+="\n"
-				with open(f"factura_n_{len(lista_cod)}.txt","w") as f:
-					f.write(factura)
+			# pregunta = messagebox.askquestion(title="COMPRA", message=f"Total a pagar: $ {total}\n¿Deseas imprimir la factura?")
 
-				print("yes, se guardó el archivo")
+			# if pregunta == "no":
+			# 	pass
+			# else:
+			# 	# ***APRENDER PDF FORMATO PEQUEÑO
+			# 	factura = ""
+			# 	for articulo in lista_factura:
+			# 	    for campo in articulo:
+			# 	        factura += str(campo) + "\t"
+			# 	    factura+="\n"
+			# 	with open(f"factura_n_{len(lista_cod)}.txt","w") as f:
+			# 		f.write(factura)
 
+			# 	print("yes, se guardó el archivo")
 			
+			if self.facturaImpresa.get():
+				print("imprimir factura")
+
+
+
 			self.borrarCampos()
 
 	def borrarCampos(self):
@@ -1323,7 +1271,7 @@ class InterfazAdministrativa(Tk):
 				
 		def seleccionItem(event):
 
-			print("hasta ahora van estos items: \n"+ "\n".join([x for x in interfazArbol.selection()]))
+			# print("hasta ahora van estos items: \n"+ "\n".join([x for x in interfazArbol.selection()]))
 
 			btnEditarInventario.pack() if len(interfazArbol.selection())!=0 else btnEditarInventario.pack_forget()
 				
