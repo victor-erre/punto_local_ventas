@@ -96,20 +96,28 @@ def tratamientoCadenas():
 	divisionPorCaracter = "~".join(frase.split("/")).split("~")
 	print(divisionPorCaracter)
 
-import tkinter as tk
-from tkinter import messagebox
 
-def open_database_window():
-    db_window = tk.Toplevel(root)
-    db_window.grab_set()  # Desactivar la ventana principal
-    db_window.protocol("WM_DELETE_WINDOW", lambda: close_database_window(db_window))
 
-def close_database_window(db_window):
-    db_window.grab_release()  # Habilitar la ventana principal
-    db_window.destroy()
 
-root = tk.Tk()
-button = tk.Button(root, text="Abrir Ventana BBDD", command=open_database_window)
-button.pack()
+def tkinterListbox():
 
-root.mainloop()
+	raiz = tkinter.Tk()
+	raiz.geometry("500x500+300+50")
+
+	listaPrueba = tkinter.Listbox(raiz, selectmode="none")
+	listaPrueba.insert("end", "Ésta es la primera línea.")
+	listaPrueba.insert("end", "Ahora continúo con la segunda línea.")
+	listaPrueba.insert("end", "Finalizamos con la tercera línea.")
+	listaPrueba.insert("end", "Ésta es la cuarta línea.")
+	listaPrueba.insert("end", "Ahora continúo con la quinta línea.")
+	listaPrueba.insert("end", "Finalmente la sexta línea.")
+	listaPrueba.place(relx=0.3, rely=0.1, relwidth=.69, relheight=.1)
+
+	scroll = tkinter.Scrollbar(listaPrueba, orient=tkinter.VERTICAL)
+	scroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+
+
+
+	raiz.mainloop()
+
+tkinterListbox()

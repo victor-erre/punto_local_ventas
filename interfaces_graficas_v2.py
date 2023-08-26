@@ -428,6 +428,7 @@ class InterfazPrincipal:
 		@conexiones.decoradorBaseDatos
 		def imprimirDetalle(event, cursor):
 
+			# *Ubicar correctamente los comentarios, posiblemente en una <Listbox> y hacer uso de <Scrollbar>
 			'''
 			INCORPORAMOS los detalles de la cuenta que se debe.
 			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo el saldo es diferente de 0). 
@@ -440,12 +441,12 @@ class InterfazPrincipal:
 			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios):
 			concepto = [i.split() for i in valores_interfaz[2].replace("/","~").split("~")]
 
-			# Pasamos la info de codigo cliente, nombre cliente, comentario y saldo en forma de label's:
-			Label(info_saldos, width=15, text = valores_interfaz[0], anchor="center").place(relx=0.50, rely=0.06)
-			Label(info_saldos, width=15, text = valores_interfaz[1], anchor="center").place(relx=0.5, rely=0.17)
+			# Pasamos la info de codigo cliente, nombre cliente, saldo, abono y comentario en forma de label's:
+			Label(info_saldos, width=15, text = str(valores_interfaz[0]).zfill(2), anchor="center").place(relx=0.50, rely=0.06)
+			Label(info_saldos, width=25, text = valores_interfaz[1], anchor="center").place(relx=0.5, rely=0.17)
 			Label(info_saldos, width=15, text = valores_interfaz[3], anchor="center").place(relx=0.5, rely=.50)
 			Label(info_saldos, width=15, text = valores_interfaz[4], anchor="center").place(relx=0.5, rely=.62)
-			Label(info_saldos, width=20, height=1, text = valores_interfaz[5], anchor="center").place(relx=0.5, rely=0.73)
+			# Label(info_saldos, width=20, height=1, text = valores_interfaz[5], anchor="center").place(relx=0.5, rely=0.73)
 
 			# Eliminamos detalles previos para evitar que se remonten los conceptos antiguos.
 			concepto_det.delete(*concepto_det.get_children())
@@ -984,6 +985,7 @@ class InterfazPrincipal:
 			
 			if self.facturaImpresa.get():
 				print("imprimir factura")
+				self.facturaImpresa.set(False)
 
 
 
