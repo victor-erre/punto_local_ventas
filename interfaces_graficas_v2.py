@@ -74,24 +74,6 @@ class Validaciones:
 		else:
 			return False
 
-	# def codigoServicio(self, **kwargs):
-
-	# 	# kwargs:{tipo: "servicio", codigo: "numerofactura",boton: <tkinter.Button> }
-
-	# 	if kwargs["tipo"]=="GAS":
-
-	# 		# if kwargs["codigo"]=="" or kwargs["codigo"].isdigit() and len(kwargs["codigo"])<11:
-	# 		if codigo=="" or codigo.isdigit() and len(codigo)<11:
-
-	# 			if len(codigo)==10:
-	# 				kwargs["boton"].config("normal")
-
-	# 			return True
-	# 		else:
-	# 			return False
-	# 	else:
-	# 		return True
-
 	def codigoServicio(self, codigo):
 
 		if codigo=="" or codigo.isdigit() and len(codigo)<11:
@@ -417,6 +399,10 @@ class InterfazPrincipal:
 	@conexiones.decoradorBaseDatos
 	def interfazSaldos(self, cursor):
 
+		# *FUTURO: Mejorar la manera como se actualiza la información al modificar la información, buscar eficiencia.
+		# *No haga nada al clickear una línea del comentario
+		# *cambiar los iconos de warning y de info
+		
 		'''
 		 MUESTRA la información de los clientes morosos o que han tenido saldo
 		 métodos:
@@ -426,7 +412,6 @@ class InterfazPrincipal:
 		@conexiones.decoradorBaseDatos
 		def imprimirDetalle(event, cursor):
 
-			# *Ubicar correctamente los comentarios, posiblemente en una <Listbox> y hacer uso de <Scrollbar>
 			'''
 			INCORPORAMOS los detalles de la cuenta que se debe.
 			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo sea diferente de 0). 
@@ -443,8 +428,30 @@ class InterfazPrincipal:
 			Label(info_saldos, width=15, text = str(valores_interfaz[0]).zfill(2), anchor="center").place(relx=0.50, rely=0.06)
 			Label(info_saldos, width=25, text = valores_interfaz[1], anchor="center").place(relx=0.5, rely=0.17)
 			Label(info_saldos, width=15, text = valores_interfaz[3], anchor="center").place(relx=0.5, rely=.50)
-			Label(info_saldos, width=15, text = valores_interfaz[4], anchor="center").place(relx=0.5, rely=.62)
-			# Label(info_saldos, width=20, height=1, text = valores_interfaz[5], anchor="center").place(relx=0.5, rely=0.73)
+			Label(info_saldos, width=15, text = valores_interfaz[4], anchor="center").place(relx=0.5, rely=.58)
+
+			comentario = Listbox(info_saldos)
+			comentario.place(relx=0.43, rely=0.65, relwidth=0.47, relheight=0.10)
+
+			# Definimos una variable para el comentario, y reemplazamos caracteres especiales para un mejor tratamiento
+			comentario_orig = valores_interfaz[5].replace("\t","").replace("\n","}").split("}")
+
+			# AÑADIR comentario a <Listbox comentario>
+			for i in comentario_orig:
+				for k in range(0, len(i), 30):
+					if i == "NULL":
+						continue
+					comentario.insert("end", i[k:k+30])
+
+
+			# Crear barra de desplazamiento vertical
+			scrollbar_y = Scrollbar(info_saldos, orient="vertical", command=comentario.yview)
+
+			# Configurar la barra de desplazamiento para la Listbox
+			comentario.config(yscrollcommand=scrollbar_y.set)
+
+			# Ubicar la barra de desplazamiento
+			scrollbar_y.place(relx=.9, rely=.65, relwidth=0.03, relheight=0.1)
 
 			# Eliminamos detalles del cliente previos para evitar que una remontada
 			concepto_det.delete(*concepto_det.get_children())
@@ -491,7 +498,7 @@ class InterfazPrincipal:
 				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valor[1]), parent=interfaz)
 
 				# ACTUALIZACIÓN del cliente seleccionado tanto en `tree` como en `info_saldos`
-				tree.item(str(valor[0]).zfill(2), values=(str(valor[0]).zfill(2), valor[1], "SALDADO", 0, 0, ""))
+				tree.item(str(valor[0]).zfill(2), values=(str(valor[0]).zfill(2), valor[1], "SALDADO", 0, 0, "NULL"))
 				concepto_det.delete(*concepto_det.get_children())
 				concepto_det.insert("", END, values=[0, "SALDADO", 0])
 		
@@ -543,9 +550,9 @@ class InterfazPrincipal:
 					messagebox.showwarning("ERROR", "Digita un valor válido.", parent=interfaz)
 
 			# ACTUALIZACIÓN `SALDO` `ABONO` y el `COMENTARIO` en <info_saldos>
+			# NOTA: Esto se hace automaticamente al seleccionar de nuevo el cliente
 			Label(info_saldos, width=15, text = tree.item(tree.selection())["values"][3], anchor="center").place(relx=0.5, rely=.5)
-			Label(info_saldos, width=15, text = tree.item(tree.selection())["values"][4], anchor="center").place(relx=0.5, rely=.62)
-			Label(info_saldos, width=20, height=3, text = tree.item(tree.selection())["values"][5], anchor="center").place(relx=0.5, rely=0.73)
+			Label(info_saldos, width=15, text = tree.item(tree.selection())["values"][4], anchor="center").place(relx=0.5, rely=.58)
 
 			entAbonoCliente.delete(0, "end")
 
@@ -569,8 +576,8 @@ class InterfazPrincipal:
 		Label(info_saldos, text="NOMBRE CLIENTE", width=15, anchor="e").place(relx=0.05, rely=0.17)
 		Label(info_saldos, text="CONCEPTO", width=15, anchor="e").place(relx=0.05, rely=.28)
 		Label(info_saldos, text="SALDO", width=15, anchor="e").place(relx=0.05, rely=.50)
-		Label(info_saldos, text="ABONO", width=15, anchor="e").place(relx=0.05, rely=.62)
-		Label(info_saldos, text="COMENTARIO", width=15, anchor="e").place(relx=0.05, rely=.73)
+		Label(info_saldos, text="ABONO", width=15, anchor="e").place(relx=0.05, rely=.58)
+		Label(info_saldos, text="COMENTARIO", width=15, anchor="e").place(relx=0.05, rely=.65)
 
 		# CREACION estructura para presentar en un panel izquierdo la lista de morosos o que han sido
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', "SALDO", "ABONO", "COMENTARIO"), selectmode=BROWSE)
@@ -587,13 +594,9 @@ class InterfazPrincipal:
 		tree.column("COMENTARIO", anchor=CENTER, width = 0, stretch=NO) # Oculta
 
 		# Configuración de encabezados
-		# tree.heading('#0', text='NUMERO', anchor=CENTER)
 		tree.heading('COD_CLIENTE', text='CODIGO', anchor=CENTER)
 		tree.heading('NOMBRE_CLIENTE', text='NOMBRE', anchor=CENTER)
-		# tree.heading('CONCEPTO', text='CONCEPTO', anchor=CENTER)
 		tree.heading('SALDO', text='SALDO', anchor=CENTER)
-		# tree.heading('ABONO', text='ABONO', anchor=CENTER)
-		# tree.heading('COMENTARIO', text='COMENTARIO', anchor=CENTER)
 
 		# Insercción de datos
 		datos = self.rescatarSaldos(cursor)
@@ -631,7 +634,7 @@ class InterfazPrincipal:
 		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
 		entAbonoCliente.place(relx=0.34, rely=0.9)
 
-		# Pasamos como argumento `None` ya que la funcion nos pide un argumento posicional (sería self dentro del módulo: `conexiones.py`)
+		# Pasamos como argumento `None` ya que la funcion nos pide un parámetro posicional (sería self dentro del módulo: `conexiones.py`)
 		imprimirDetalle(None)
 
 
@@ -931,7 +934,7 @@ class InterfazPrincipal:
 						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end").upper()))
 						self.entCodigoCliente.delete(0,END)
 						self.txtComentarioCliente.delete("1.0", "end")
-						self.boolAgregarASaldo.set(False)
+						self.checkIncluirSaldo.invoke()
 
 					else:
 						messagebox.showwarning(title="ERROR", message=f"No existe deudor con el código {self.entCodigoCliente.get()}")
