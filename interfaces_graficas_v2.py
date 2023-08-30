@@ -399,9 +399,9 @@ class InterfazPrincipal:
 	@conexiones.decoradorBaseDatos
 	def interfazSaldos(self, cursor):
 
+		# *Crear todo el formato desde la creación de la ventana, despues darle manejo con el método <config> o sus correspondientes
 		# *FUTURO: Mejorar la manera como se actualiza la información al modificar la información, buscar eficiencia.
-		# *No haga nada al clickear una línea del comentario
-		# *cambiar los iconos de warning y de info
+		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se debe crear una clase propio heredando de <Toplevel>)
 		
 		'''
 		 MUESTRA la información de los clientes morosos o que han tenido saldo
@@ -443,6 +443,8 @@ class InterfazPrincipal:
 						continue
 					comentario.insert("end", i[k:k+30])
 
+
+			comentario.activate(2)
 
 			# Crear barra de desplazamiento vertical
 			scrollbar_y = Scrollbar(info_saldos, orient="vertical", command=comentario.yview)
@@ -610,7 +612,6 @@ class InterfazPrincipal:
 
 		# Seleccionamos automaticamente el cliente ADMIN
 		tree.selection_set("00")
-
 
 		# Arbol ubicado en el panel derecho, propiedad `CONCEPTO`
 		concepto_det = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=NONE)

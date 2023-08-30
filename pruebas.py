@@ -116,17 +116,6 @@ def tkinterListbox():
 	scroll = tkinter.Scrollbar(listaPrueba, orient=tkinter.VERTICAL)
 	scroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
 
-
-
 	raiz.mainloop()
 
-variable = "Esta es una prueba para convertir esta cadena en una lista con elementos de 5 caracteres"
 
-valor = 'ESTE ES EL COMENTARIO DE PRUEBA HORIZANTL\t\nSEGUNDO COMENTARIO, VEREMOS QUE TAL\nTERCER COMENTARIO PARA ENSAYAR EL SCROLLVERTICAL\nESTE ES EL ULTIMO COMENTARIO\n'
-valor = valor.replace("\t","").replace("\n","}")
-valor2 = valor.split("}")
-lista = []
-for i in valor2:
-	for k in range(0, len(i), 30):
-		lista.append(i[k:k+30])
-print(lista)
