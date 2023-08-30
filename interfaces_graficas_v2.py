@@ -529,7 +529,7 @@ class InterfazPrincipal:
 					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
 					if valor_abonar <= saldo_total - abono_bd:
 
-						# si es el mismo valor, llamamos de vuelta a la funcion pero con el tipo `SALDAR` para liquidar cuenta
+						# si es el mismo valor, llamamos de vuelta ad la funcion pero con el tipo `SALDAR` para liquidar cuenta
 						if valor_abonar == saldo_total - abono_bd:
 
 							abonarSaldo("SALDAR", tree.item(tree.selection())["values"])
