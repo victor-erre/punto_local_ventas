@@ -118,4 +118,4 @@ def tkinterListbox():
 
 	raiz.mainloop()
 
-
+print(datetime.date.today().strftime('%d/%m: '))
