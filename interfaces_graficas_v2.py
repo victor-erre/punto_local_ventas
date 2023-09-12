@@ -1,5 +1,6 @@
 from tkinter import Frame,BROWSE,NONE, BOTH,X, Y, Listbox, Label, LabelFrame, Checkbutton, Scrollbar, Tk, Text, StringVar,Message, BooleanVar, Entry, Button, ttk, messagebox,TOP, OptionMenu, Toplevel, IntVar, NORMAL, RIGHT, LEFT, END, NO, CENTER, YES, HORIZONTAL, VERTICAL
 
+# POTTER: REGISTRADORA CASIO PCR - T285
 import conexiones
 import pandas
 import time
@@ -93,6 +94,7 @@ class Validaciones:
 # class InterfazPrincipal(Frame):
 class InterfazPrincipal:
 
+	# *POTTER: funcion para guardar las sugerencias o productos que solicitan y no hay.
 	"""
 	Interfaz genérica que contiene las operaciones comunes que se hacen en el negocio,
 	Pago de servicios, recargas, compra de artículos y tareas administrativas.
@@ -403,7 +405,8 @@ class InterfazPrincipal:
 	def interfazSaldos(self, cursor):
 
 		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se decd documents be crear una clase propio heredando de <Toplevel>)
-		# *AGREGAR: Botón de añadir || agregar , para sumar al saldo desde la interfaz
+		# *AGREGAR: Botón de añadir || agregar , para sumar al saldo desde la interfaz (que haya un entry para el comentario)
+		# *Cuando se crea un cliente nuevo, el comentario no lo guarda con la fecha
 		# *Que no haga nada al seleccionar una linea del comentario
 		
 		'''
@@ -492,6 +495,7 @@ class InterfazPrincipal:
 
 				# ACTUALIZACIÓN del cliente seleccionado tanto en <tree> como en <info_saldos>
 				tree.item(str(valores_interfaz[0]).zfill(2), values=(str(valores_interfaz[0]).zfill(2), valores_interfaz[1], "SALDADO", 0, 0, "NULL"))
+				valorAbono.set("")
 				# actualizarDetalle(None)
 
 			elif tipo == "ABONAR":
@@ -514,6 +518,7 @@ class InterfazPrincipal:
 					valor_abonar = int(entAbonoCliente.get())
 					saldo_total = sum([i[0] for i in info_bd])
 					abono_bd = info_bd[0][2]
+					print("valor abonar: ", valor_abonar,"\nsaldo total - abono_bd: ",saldo_total - abono_bd)
 
 					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
 					if valor_abonar <= saldo_total - abono_bd:
@@ -893,7 +898,7 @@ class InterfazPrincipal:
 	@conexiones.decoradorBaseDatos
 	def compra(self, cursor, **kwargs):
 
-		# *incluir una nota cuando el check de incluir a saldo se presione.
+		# *Incluir boton para descuentos a la venta general
 
 		# if self.menuOperacion.current()==0 or self.menuOperacion.current() ==1:
 		# 	self.ejecutar()
@@ -946,7 +951,7 @@ class InterfazPrincipal:
 							cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
 
 						# verificamos si hay comentario, si lo hay le agregamos la fecha:
-						if len(self.txtComentarioCliente.get("1.0", "end")) != 5:
+						if len(self.txtComentarioCliente.get("1.0", "end")) >= 4:
 							self.txtComentarioCliente.insert("1.0", datetime.date.today().strftime('%d/%m: '))
 
 						# cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get(),"SALDADO"))
