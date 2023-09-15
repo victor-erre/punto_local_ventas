@@ -96,9 +96,6 @@ def tratamientoCadenas():
 	divisionPorCaracter = "~".join(frase.split("/")).split("~")
 	print(divisionPorCaracter)
 
-
-
-
 def tkinterListbox():
 
 	raiz = tkinter.Tk()
@@ -119,3 +116,4 @@ def tkinterListbox():
 	raiz.mainloop()
 
 
+tkinterListbox()

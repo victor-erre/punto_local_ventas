@@ -406,7 +406,6 @@ class InterfazPrincipal:
 
 		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se decd documents be crear una clase propio heredando de <Toplevel>)
 		# *AGREGAR: Botón de añadir || agregar , para sumar al saldo desde la interfaz (que haya un entry para el comentario)
-		# *Cuando se crea un cliente nuevo, el comentario no lo guarda con la fecha
 		# *Que no haga nada al seleccionar una linea del comentario
 		
 		'''
@@ -457,7 +456,6 @@ class InterfazPrincipal:
 				btnSaldarCliente["state"]="disabled"
 
 				concepto.insert("", END, values=[0, "SALDADO", 0])
-
 
 			saldo["text"]=valores_interfaz[3]
 			abono["text"]=valores_interfaz[4]
@@ -518,7 +516,6 @@ class InterfazPrincipal:
 					valor_abonar = int(entAbonoCliente.get())
 					saldo_total = sum([i[0] for i in info_bd])
 					abono_bd = info_bd[0][2]
-					print("valor abonar: ", valor_abonar,"\nsaldo total - abono_bd: ",saldo_total - abono_bd)
 
 					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
 					if valor_abonar <= saldo_total - abono_bd:
@@ -535,7 +532,6 @@ class InterfazPrincipal:
 							# ACTUALIZACIÓN cliente seleccionado `tree` como en `info_det`
 							tree.item(str(valores_interfaz[0]).zfill(2), values=(str(valores_interfaz[0]).zfill(2), valores_interfaz[1], valores_interfaz[2], valores_interfaz[3], abono_bd+valor_abonar, valores_interfaz[5]))
 
-
 					else:
 
 						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente es de: ${}".format(saldo_total-abono_bd), parent=interfaz)
@@ -549,7 +545,6 @@ class InterfazPrincipal:
 			actualizarDetalle(None)
 			entAbonoCliente.delete(0, "end")
 			# entAgregarSaldo.delete(0, "end")
-
 
 		# CREACION ventana para mostrar los morosos y su información respectiva
 		interfaz = Toplevel(self.raiz)
@@ -975,6 +970,11 @@ class InterfazPrincipal:
 					else:
 						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC")
 						codigo_sgte = cursor.fetchone()[0]+1
+
+						# verificamos si hay comentario, si lo hay le agregamos la fecha:
+						if len(self.txtComentarioCliente.get("1.0", "end")) >= 4:
+							self.txtComentarioCliente.insert("1.0", datetime.date.today().strftime('%d/%m: '))
+
 						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end").upper()))
 						messagebox.showinfo(title="CREACIÓN EXITOSA", message=f"Cliente {self.entCodigoCliente.get()} creado con éxito.")
 						self.checkIncluirSaldo.invoke()
