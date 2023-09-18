@@ -18,6 +18,39 @@ import numpy
 
 # esta es una prueba inicial
 
+class Conversiones:
+
+	def __init__(self):
+		pass
+
+	def puntoMilConSimbolo(self, numero):
+		'''
+		Función para asignarle el punto que indica mil (si lo tiene) y ubicar el símbolo de peso a la izquierda de la cifra.
+		'''
+		numero = str(numero)
+		if len(numero)<=3:
+			return "$ {}".format(numero)
+		else:
+			transformado = list(numero)
+			puntos = len(numero) // 3 
+			residuo = len(numero) % 3
+			contador = -3
+
+			# insertamos los puntos en el lugar indicado.
+			# Si el residuo es cero quiere decir que la cantidad de numeros no es múltiplo de 3 y por ende podemos agregarlos en la posicion -3
+			# si es el punto que indica mil, sino le vamos aumentando -4 cada vez. Si el residuo es cero (ES múltiplo de 3) entonces le quitamos
+			# una unidad a la variable puntos, ya que si tenemos ejemplo 350, 349.000, y asi susesivamente, no podemos poner punto antes de las centenas, centenas de mil, ..
+			if residuo!=0:
+				for i in range(puntos):
+					transformado.insert(contador, ".")
+					contador-=4
+			else:
+				for i in range(puntos-1):
+					transformado.insert(contador, ".")
+					contador-=4
+			return "$ {}".format("".join(transformado))
+
+
 class Validaciones:
 
 	"""
@@ -107,6 +140,7 @@ class InterfazPrincipal:
 		self.raiz.resizable(False,False)
 		# creamos una instancia de la clase validaciones, para usar sus métodos.
 		self.validaciones = Validaciones()
+		self.conversiones = Conversiones()
 		self.crearWidgets()
 		self.raiz.mainloop()
 
@@ -418,29 +452,30 @@ class InterfazPrincipal:
 		def actualizarDetalle(event, cursor):
 
 			'''
-			INCORPORAMOS los detalles de la cuenta que se debe.
+			INCORPORAMOS los valores nuevos de la cuenta que se debe.
 			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo sea diferente de 0). 
-			<list valores_interfaz> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
+			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			<list valor_concepto> = [(CANTIDAD "NOMBRE_ARTICULO" PRECIO_TOTAL), ...]
 			<list valor_comentario> = ("PRIMERA LINEA", "SEGUNDA LINEA", ...)
 			'''
 
-			valores_interfaz = tree.item(tree.selection())["values"]
-			# FORMATO: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
-			valor_concepto = [i.split() for i in valores_interfaz[2].replace("/","~").split("~")]
+			valor_seleccion = tree.item(tree.selection())["values"]
+			
 			# Definimos una variable para el comentario, y reemplazamos caracteres especiales para un mejor tratamiento
-			valor_comentario = valores_interfaz[5].replace("\t","").replace("\n","}").split("}")
+			valor_comentario = valor_seleccion[5].replace("\t","").replace("\n","}").split("}")
 
+			# ACTUALIZAMOS VALORES PANEL DERECHO.
+			codigo["text"]=str(valor_seleccion[0]).zfill(2)
+			nombre["text"]=valor_seleccion[1]
 
-			# actualizamos los valores
-			codigo["text"]=str(valores_interfaz[0]).zfill(2)
-			nombre["text"]=valores_interfaz[1]
-
-			# Eliminamos detalles del cliente previos para evitar una remontada.
+			# ELIMINAMOS DETALLES PREVIOS: en concepto del panel derecho para evitar una remontada.
 			concepto.delete(*concepto.get_children())
 
-			# Tratamos la insercción de detalle y manejo de los botones inferiores + entrada de acuerdo a si es cero o no el saldo.
-			if valores_interfaz[3]!=0: 
+			# INSERCCIÓN DE DETALLE Y HABILITACION DE BOTONES: de acuerdo al saldo de la selección.
+			if valor_seleccion[3]!=0: 
+
+				# FORMATO¬: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
+				valor_concepto = [i.split() for i in valor_seleccion[2].replace("/","~").split("~")]
 
 				btnSaldarCliente["state"]="normal"
 				btnAbonoCliente["state"]="normal"
@@ -455,17 +490,19 @@ class InterfazPrincipal:
 				entAbonoCliente["state"]="disabled"
 				btnSaldarCliente["state"]="disabled"
 
-				concepto.insert("", END, values=[0, "SALDADO", 0])
+				concepto.insert("", END, values=["-", "SALDADO", 0])
 
-			saldo["text"]=valores_interfaz[3]
-			abono["text"]=valores_interfaz[4]
+			# Hacemos uso del objeto conversiones; declarado en la construcción de la clase actual,
+			# para asignarle el símbolo de peso y los puntos que indican mil a las etiquetas que son valores.
+			saldoInicial["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3]) 
+			abono["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[4])
+			saldoTotal["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3] - valor_seleccion[4])
 
 			# BORRAMOS y AÑADIMOS comentario correspondiente a <Listbox comentario>
 			comentario.delete(0, "end")
 			for i in valor_comentario:
+				# Agregamos de a 30 caracteres por linea
 				for k in range(0, len(i), 30):
-					# if i == "NULL":
-					# 	continue
 					comentario.insert("end", i[k:k+30])
 			
 			comentario.activate(2)
@@ -475,26 +512,25 @@ class InterfazPrincipal:
 
 			'''
 			<str tipo> = "SALDAR" || "ABONAR"
-			<list valores_interfaz> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
+			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			'''
 
-			valores_interfaz = tree.item(tree.selection())["values"]
+			valor_seleccion = tree.item(tree.selection())["values"]
 
 			if tipo == "SALDAR":
 
 				# En orden descendente para asignarle al registro saldado el valor de la última factura.
-				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valores_interfaz[0]).zfill(2),))
+				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valor_seleccion[0]).zfill(2),))
 				codigo_fact = cursor.fetchone()
 
-				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valores_interfaz[0]).zfill(2),))
-				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valores_interfaz[0]).zfill(2), valores_interfaz[1], codigo_fact[0], "SALDADO", 0) )
+				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor_seleccion[0]).zfill(2),))
+				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0) )
 
-				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valores_interfaz[1]), parent=interfaz)
+				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valor_seleccion[1]), parent=interfaz)
 
-				# ACTUALIZACIÓN del cliente seleccionado tanto en <tree> como en <info_saldos>
-				tree.item(str(valores_interfaz[0]).zfill(2), values=(str(valores_interfaz[0]).zfill(2), valores_interfaz[1], "SALDADO", 0, 0, "NULL"))
+				# ACTUALIZACIÓN del cliente seleccionado tanto en <tree> (actualización manual) como en <info_saldos>
+				tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], "SALDADO", 0, 0, "NULL"))
 				valorAbono.set("")
-				# actualizarDetalle(None)
 
 			elif tipo == "ABONAR":
 
@@ -506,7 +542,7 @@ class InterfazPrincipal:
 
 				elif int(entAbonoCliente.get())%50==0:
 
-					codigo_cliente = str(valores_interfaz[0]).zfill(2)
+					codigo_cliente = str(valor_seleccion[0]).zfill(2)
 
 					# OBTENEMOS el saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
 					cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
@@ -530,11 +566,11 @@ class InterfazPrincipal:
 							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
 
 							# ACTUALIZACIÓN cliente seleccionado `tree` como en `info_det`
-							tree.item(str(valores_interfaz[0]).zfill(2), values=(str(valores_interfaz[0]).zfill(2), valores_interfaz[1], valores_interfaz[2], valores_interfaz[3], abono_bd+valor_abonar, valores_interfaz[5]))
+							tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], valor_seleccion[2], valor_seleccion[3], abono_bd+valor_abonar, valor_seleccion[5]))
 
 					else:
 
-						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente es de: ${}".format(saldo_total-abono_bd), parent=interfaz)
+						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente es de: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)), parent=interfaz)
 						entAbonoCliente.delete(0, "end")
 						return
 				else:
@@ -557,33 +593,33 @@ class InterfazPrincipal:
 		valorAgregar = StringVar()
 
 		# EXPERIMENTAL: método para poner en primer plano la interfaz
-		interfaz.grab_set()
+		# interfaz.grab_set()
 		# interfaz.wm_attributes("-topmost", True)
 
 		info_saldos = Frame(interfaz)
 		info_saldos.place(relx=0.5, relwidth=0.48, rely=0.02, relheight=0.96)
 
 		# Creamos la estructura del lado derecho de la ventana
-		Label(info_saldos, text="CODIGO CLIENTE", width = 15, anchor="e").place(relx=0.05, rely=0.06)
-		Label(info_saldos, text="NOMBRE CLIENTE", width=15, anchor="e").place(relx=0.05, rely=0.17)
-		Label(info_saldos, text="CONCEPTO", width=15, anchor="e").place(relx=0.05, rely=.28)
-		Label(info_saldos, text="SALDO", width=15, anchor="e").place(relx=0.05, rely=.50)
-		Label(info_saldos, text="ABONO", width=15, anchor="e").place(relx=0.05, rely=.58)
-		Label(info_saldos, text="COMENTARIO", width=15, anchor="e").place(relx=0.05, rely=.65)
+		Label(info_saldos, text="CODIGO CLIENTE", width = 15, anchor="e").place(relx=0.05, rely=0.04)
+		Label(info_saldos, text="NOMBRE CLIENTE", width=15, anchor="e").place(relx=0.05, rely=0.15)
+		Label(info_saldos, text="CONCEPTO", width=15, anchor="e").place(relx=0.05, rely=.26)
+		Label(info_saldos, text="SALDO INICIAL", width=15, anchor="e").place(relx=0.05, rely=.45)
+		Label(info_saldos, text="ABONO", width=15, anchor="e").place(relx=0.5, rely=.45)
+		Label(info_saldos, text="SALDO TOTAL", width=15, anchor="e").place(relx=0.32, rely=.53)
+		Label(info_saldos, text="COMENTARIO", width=15, anchor="e").place(relx=0.05, rely=.63)
 
 		codigo = Label(info_saldos, width=15, anchor="center")
-		codigo.place(relx=0.50, rely=0.06)
+		codigo.place(relx=0.50, rely=0.04)
 
 		nombre = Label(info_saldos, width=25, anchor="center")
-		nombre.place(relx=0.5, rely=0.17)
+		nombre.place(relx=0.5, rely=0.15)
 
-		# Arbol ubicado en el panel derecho, propiedad `CONCEPTO`
+		# Arbol ubicado en el panel derecho.
 		concepto = ttk.Treeview(info_saldos, columns=("CANTIDAD", "ARTICULO", "PRECIO"), selectmode=NONE)
-		concepto.place(relx=0.45, rely=.28, relwidth=0.45, relheight=0.19)
-
+		concepto.place(relx=0.45, rely=.26, relwidth=0.45, relheight=0.17)
 
 		concepto.column("#0", width=0, stretch=NO)
-		concepto.column("CANTIDAD", width=20, anchor = "e", stretch=NO)	# No ajustamos por defecto ésta columna
+		concepto.column("CANTIDAD", width=20, anchor = "e", stretch=NO)
 		concepto.column("ARTICULO",width=50, anchor = "e")
 		concepto.column("PRECIO", width=30, anchor = "e")
 
@@ -591,21 +627,24 @@ class InterfazPrincipal:
 		concepto.heading("ARTICULO", text="ARTICULO", anchor = "e")
 		concepto.heading("PRECIO", text="PRECIO", anchor = "e")
 
-		saldo = Label(info_saldos, width=15, anchor="center")
-		saldo.place(relx=0.5, rely=.50)
+		saldoInicial = Label(info_saldos, width=15, anchor="center")
+		saldoInicial.place(relx=0.08, rely=.49)
 
 		abono = Label(info_saldos, width=15, anchor="center")
-		abono.place(relx=0.5, rely=.58)
+		abono.place(relx=0.58, rely=.49)
+
+		saldoTotal = Label(info_saldos, width =15, anchor ="center")
+		saldoTotal.place(relx=0.36, rely=0.57)
 
 		comentario = Listbox(info_saldos)
 		comentario.place(relx=0.43, rely=0.65, relwidth=0.47, relheight=0.10)
 
-		# Creacion de barra desplazamiento
+		# BARRA DESPLAZAMIENTO de comentario.
 		scrollbar_y = Scrollbar(info_saldos, orient="vertical", command=comentario.yview)
 		comentario.config(yscrollcommand=scrollbar_y.set)
 		scrollbar_y.place(relx=.9, rely=.65, relwidth=0.03, relheight=0.1)
 
-		# CREACION botones y entrada para abono 
+		# BOTONES
 		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR"))
 		btnSaldarCliente.place(relx=0.45, rely=0.8)
 
@@ -615,12 +654,13 @@ class InterfazPrincipal:
 		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
 		entAbonoCliente.place(relx=0.34, rely=0.9)
 
-		# CREACION estructura para presentar en un panel izquierdo la lista de morosos o que han sido
+		# PANEL IZQUIERDO: Información general de morosos o que han tenido cuenta.
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', "SALDO", "ABONO", "COMENTARIO"), selectmode=BROWSE)
+		tree.place(relx=0.02, relwidth=0.48, rely=0.02, relheight=0.96)
 
 		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", lambda event: actualizarDetalle(event))
 
-		# Configuración de columnas (ocultamos concepto y comentario)
+		# CONFIGURACIÓN COLUMNAS.
 		tree.column('#0', width=0, anchor=CENTER, stretch=NO) # Oculta
 		tree.column('COD_CLIENTE', anchor=CENTER, width=50)
 		tree.column('NOMBRE_CLIENTE', anchor=CENTER, width=110)
@@ -629,24 +669,24 @@ class InterfazPrincipal:
 		tree.column('ABONO', anchor=CENTER, width=0, stretch=NO) # Oculta
 		tree.column("COMENTARIO", anchor=CENTER, width = 0, stretch=NO) # Oculta
 
-		# Configuración de encabezados
+		# CONFIGURACIÓN ENCABEZADOS.
 		tree.heading('COD_CLIENTE', text='CODIGO', anchor=CENTER)
 		tree.heading('NOMBRE_CLIENTE', text='NOMBRE', anchor=CENTER)
 		tree.heading('SALDO', text='SALDO', anchor=CENTER)
 
-		# Insercción de datos
+
+		# RESCATE E INSERCCIÓN DE DATOS.
+
 		datos = self.rescatarSaldos(cursor)
-
 		for i in range(len(datos)):
-
+			# iid es CÓDIGO DEL CLIENTE
 			tree.insert('', 'end', iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
 
-		# Empaquetar el Treeview y el frame en la ventana de saldos.
-		tree.place(relx=0.02, relwidth=0.48, rely=0.02, relheight=0.96)
 
-		# Seleccionamos automaticamente el cliente ADMIN
+		# SELECCIÓN AUTOMÁTICA.
 		tree.selection_set("00")
 
+		# ACTUALIZACIÓN PANEL DERECHO:
 		# Pasamos como argumento `None` ya que la funcion nos pide un parámetro posicional (sería self dentro del módulo: `conexiones.py`)
 		actualizarDetalle(None)
 
@@ -778,6 +818,7 @@ class InterfazPrincipal:
 					self.cantidadListaCompra.config(text=len(self.listaCompra))
 
 			else:
+
 				messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
 
 

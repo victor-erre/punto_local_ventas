@@ -114,6 +114,31 @@ def tkinterListbox():
 	scroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
 
 	raiz.mainloop()
+	
+def puntoMilConSimbolo(numero):
+		'''
+		Función para asignarle el punto que indica mil (si lo tiene) y ubicar el símbolo de peso a la izquierda de la cifra.
+		'''
+		if len(numero)<=3:
+			return "$ {}".format(numero)
+		else:
+			transformado = list(numero)
+			puntos = len(numero) // 3 
+			residuo = len(numero) % 3
+			contador = -3
+
+			# insertamos los puntos en el lugar indicado.
+			# Si el residuo es cero quiere decir que la cantidad de numeros no es múltiplo de 3 y por ende podemos agregarlos en la posicion -3
+			# si es el punto que indica mil, sino le vamos aumentando -4 cada vez. Si el residuo es cero (ES múltiplo de 3) entonces le quitamos
+			# una unidad a la variable puntos, ya que si tenemos ejemplo 350, 349.000, y asi susesivamente, no podemos poner punto antes de las centenas, centenas de mil, ..
+			if residuo!=0:
+				for i in range(puntos):
+					transformado.insert(contador, ".")
+					contador-=4
+			else:
+				for i in range(puntos-1):
+					transformado.insert(contador, ".")
+					contador-=4
+			return "$ {}".format("".join(transformado))
 
 
-tkinterListbox()
