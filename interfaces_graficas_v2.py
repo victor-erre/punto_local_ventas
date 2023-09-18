@@ -445,37 +445,40 @@ class InterfazPrincipal:
 		'''
 		 MUESTRA la información de los clientes morosos o que han tenido saldo en el negocio.
 		 Métodos:
-		 	actualizarDetalle ---> Rellena la información detallada del cliente seleccionado.
+		 	actualizarDetalle ---> Rellena la información detallada (Panel Derecho) del cliente seleccionado.
 		 	abonarSaldo ---> Realiza las modificaciones en la BBDD de acuedo al abono parcial,total o a la suma de saldo nuevo a traves de `interfazSaldos`.
 		'''
+
+		def borrarEntradas():
+			entAbonoCliente.delete(0, "end")
+			entAgregarSaldo.delete(0, "end")
+
 		@conexiones.decoradorBaseDatos
 		def actualizarDetalle(event, cursor):
 
 			'''
-			INCORPORAMOS los valores nuevos de la cuenta que se debe.
-			HABILITACION de botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo sea diferente de 0). 
+			ACTUALIZACIÓN LADO DERECHO (DETALLES DEL CLIENTE).
+			HABILITACIÓN: botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo sea diferente de 0). 
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			<list valor_concepto> = [(CANTIDAD "NOMBRE_ARTICULO" PRECIO_TOTAL), ...]
 			<list valor_comentario> = ("PRIMERA LINEA", "SEGUNDA LINEA", ...)
 			'''
 
+			# DECLARACIÓN VARIABLES Y FORMATEO.
 			valor_seleccion = tree.item(tree.selection())["values"]
-			
-			# Definimos una variable para el comentario, y reemplazamos caracteres especiales para un mejor tratamiento
 			valor_comentario = valor_seleccion[5].replace("\t","").replace("\n","}").split("}")
+			valor_concepto = [i.split() for i in valor_seleccion[2].replace("/","~").split("~")]
 
-			# ACTUALIZAMOS VALORES PANEL DERECHO.
+			# ACTUALIZCION VALORES.
 			codigo["text"]=str(valor_seleccion[0]).zfill(2)
 			nombre["text"]=valor_seleccion[1]
 
-			# ELIMINAMOS DETALLES PREVIOS: en concepto del panel derecho para evitar una remontada.
+			# ELIMINACIÓN; evitando una remontada, e INSERCCIÓN CONCEPTO.
+			# HABILITACION DE BOTONES.
+
 			concepto.delete(*concepto.get_children())
 
-			# INSERCCIÓN DE DETALLE Y HABILITACION DE BOTONES: de acuerdo al saldo de la selección.
 			if valor_seleccion[3]!=0: 
-
-				# FORMATO¬: Dividimos en paquetes de a 3, con divisiones internas de space cada elemento de cada factura (le borramos los espacios)
-				valor_concepto = [i.split() for i in valor_seleccion[2].replace("/","~").split("~")]
 
 				btnSaldarCliente["state"]="normal"
 				btnAbonoCliente["state"]="normal"
@@ -490,16 +493,18 @@ class InterfazPrincipal:
 				entAbonoCliente["state"]="disabled"
 				btnSaldarCliente["state"]="disabled"
 
-				concepto.insert("", END, values=["-", "SALDADO", 0])
+				concepto.insert("", END, values=["-", "SALDADO", "-"])
 
-			# Hacemos uso del objeto conversiones; declarado en la construcción de la clase actual,
-			# para asignarle el símbolo de peso y los puntos que indican mil a las etiquetas que son valores.
+			# FORMATEO DE VALORES ECONÓMICOS.
+
 			saldoInicial["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3]) 
 			abono["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[4])
 			saldoTotal["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3] - valor_seleccion[4])
 
-			# BORRAMOS y AÑADIMOS comentario correspondiente a <Listbox comentario>
+			# BORRADO Y ADICIÓN COMENTARIO.
+
 			comentario.delete(0, "end")
+
 			for i in valor_comentario:
 				# Agregamos de a 30 caracteres por linea
 				for k in range(0, len(i), 30):
@@ -519,68 +524,67 @@ class InterfazPrincipal:
 
 			if tipo == "SALDAR":
 
-				# En orden descendente para asignarle al registro saldado el valor de la última factura.
+				# CAPTURA: código última factura (para asignarle al estado "SALDADO")
 				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valor_seleccion[0]).zfill(2),))
 				codigo_fact = cursor.fetchone()
 
+				# BORRADO Y ACTUALIZACIÓN: en BBDD.
 				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor_seleccion[0]).zfill(2),))
 				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0) )
 
 				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valor_seleccion[1]), parent=interfaz)
 
-				# ACTUALIZACIÓN del cliente seleccionado tanto en <tree> (actualización manual) como en <info_saldos>
+				# ACTUALIZACIÓN: de todos los datos de la Interfaz.
 				tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], "SALDADO", 0, 0, "NULL"))
-				valorAbono.set("")
+				borrarEntradas()
 
 			elif tipo == "ABONAR":
 
-				# Debe haber algun valor en la entrada, y éste debe ser divisible por 100
 				if entAbonoCliente.get()=="":
 
 					messagebox.showwarning("ERROR", "Digita el monto a abonar.", parent=interfaz)
 
-
+				# VERIFICACIÓN: del criterio de la EntryUser (divisible por 50)
 				elif int(entAbonoCliente.get())%50==0:
 
 					codigo_cliente = str(valor_seleccion[0]).zfill(2)
 
-					# OBTENEMOS el saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
+					# OBTENCIÓN: del saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
 					cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
 					info_bd = cursor.fetchall()
 
-					# definimos variables para el monto abonar, el saldo que debe y el abono hecho hasta ahora
+					# DEFINICIÓN VARIABLES:
 					valor_abonar = int(entAbonoCliente.get())
 					saldo_total = sum([i[0] for i in info_bd])
 					abono_bd = info_bd[0][2]
 
-					# verificamos que el valor abonar sea el mismo o menor que el saldo más lo que se ha abonado
+					# VERIFICACIÓN VALIDEZ: el valor a abonar debe ser el mismo o menor que el saldo más lo abonado.
 					if valor_abonar <= saldo_total - abono_bd:
 
-						# si es el mismo valor, llamamos de vuelta ad la funcion pero con el tipo `SALDAR` para liquidar cuenta
+						# En igualdad de valores, se llama de vuelta la función pero con el argumento `SALDAR`
 						if valor_abonar == saldo_total - abono_bd:
 
 							abonarSaldo("SALDAR")
 
 						else:
 
-							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
+							# ACTUALIZACIÓN: valores cliente seleccionado; tanto en BBDD como en la Interfaz.
 
-							# ACTUALIZACIÓN cliente seleccionado `tree` como en `info_det`
+							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
 							tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], valor_seleccion[2], valor_seleccion[3], abono_bd+valor_abonar, valor_seleccion[5]))
 
 					else:
 
-						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente es de: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)), parent=interfaz)
-						entAbonoCliente.delete(0, "end")
+						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)), parent=interfaz)
+						borrarEntradas()
 						return
 				else:
 
 					messagebox.showwarning("ERROR", "Digita un valor válido.", parent=interfaz)
 
-			# actualizamos valores y borramos las entradas
+			# ACTUALIZACIÓN interfaz Y LIMPIEZA entradas:
 			actualizarDetalle(None)
-			entAbonoCliente.delete(0, "end")
-			# entAgregarSaldo.delete(0, "end")
+			borrarEntradas()
 
 		# CREACION ventana para mostrar los morosos y su información respectiva
 		interfaz = Toplevel(self.raiz)
@@ -592,10 +596,11 @@ class InterfazPrincipal:
 		valorAbono = StringVar()
 		valorAgregar = StringVar()
 
-		# EXPERIMENTAL: método para poner en primer plano la interfaz
-		# interfaz.grab_set()
+		# EXPERIMENTAL: método para bloquear la Interfaz presente.
+		interfaz.grab_set()
 		# interfaz.wm_attributes("-topmost", True)
 
+		# PANEL DERECHO:
 		info_saldos = Frame(interfaz)
 		info_saldos.place(relx=0.5, relwidth=0.48, rely=0.02, relheight=0.96)
 
@@ -644,30 +649,40 @@ class InterfazPrincipal:
 		comentario.config(yscrollcommand=scrollbar_y.set)
 		scrollbar_y.place(relx=.9, rely=.65, relwidth=0.03, relheight=0.1)
 
-		# BOTONES
-		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR"))
-		btnSaldarCliente.place(relx=0.45, rely=0.8)
+		# BOTONES Y USERENTRY:
 
-		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONAR"))
-		btnAbonoCliente.place(relx=0.68, rely=0.9)
+		entAgregarSaldo = Entry(info_saldos, width=25, textvariable = valorAgregar , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
+		entAgregarSaldo.place(relx=0.32, rely=0.78)
+
+		# *Cuando se presione salga una ventana emergente (previa validacion de cantidad a agregar) que pregunte si va agregar algún comentario
+		btnAgregarSaldo = Button(info_saldos, text="AGREGAR SALDO", width=10)
+		btnAgregarSaldo.place(relx=0.68, rely=0.78)
 
 		entAbonoCliente = Entry(info_saldos, width=20, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
-		entAbonoCliente.place(relx=0.34, rely=0.9)
+		entAbonoCliente.place(relx=0.34, rely=0.86)
 
-		# PANEL IZQUIERDO: Información general de morosos o que han tenido cuenta.
+		btnAbonoCliente = Button(info_saldos, text="ABONAR", width=10, command = lambda : abonarSaldo("ABONAR"))
+		btnAbonoCliente.place(relx=0.68, rely=0.86)
+
+		btnSaldarCliente = Button(info_saldos, text="SALDAR", width=10, command = lambda : abonarSaldo("SALDAR"))
+		btnSaldarCliente.place(relx=0.45, rely=0.94)
+
+
+		# PANEL IZQUIERDO: Información general de morosos o que han tenido cuenta (CÓDIGO - NOMBRE - SALDO).
 		tree = ttk.Treeview(interfaz, columns=('COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', "SALDO", "ABONO", "COMENTARIO"), selectmode=BROWSE)
 		tree.place(relx=0.02, relwidth=0.48, rely=0.02, relheight=0.96)
 
+		# Cada que se seleccione un cliente se actualiza el panel derecho
 		tree.tag_bind("clienteSeleccionado", "<<TreeviewSelect>>", lambda event: actualizarDetalle(event))
 
-		# CONFIGURACIÓN COLUMNAS.
-		tree.column('#0', width=0, anchor=CENTER, stretch=NO) # Oculta
+		# CONFIGURACIÓN COLUMNAS: las que tienen `width = 0 && stretch = NO` se ocultan.
+		tree.column('#0', width=0, anchor=CENTER, stretch=NO)
 		tree.column('COD_CLIENTE', anchor=CENTER, width=50)
 		tree.column('NOMBRE_CLIENTE', anchor=CENTER, width=110)
-		tree.column('CONCEPTO', anchor=CENTER, width=0, stretch=NO) # Oculta
+		tree.column('CONCEPTO', anchor=CENTER, width=0, stretch=NO)
 		tree.column('SALDO', anchor=CENTER, width=80)
-		tree.column('ABONO', anchor=CENTER, width=0, stretch=NO) # Oculta
-		tree.column("COMENTARIO", anchor=CENTER, width = 0, stretch=NO) # Oculta
+		tree.column('ABONO', anchor=CENTER, width=0, stretch=NO)
+		tree.column("COMENTARIO", anchor=CENTER, width = 0, stretch=NO)
 
 		# CONFIGURACIÓN ENCABEZADOS.
 		tree.heading('COD_CLIENTE', text='CODIGO', anchor=CENTER)
@@ -679,11 +694,10 @@ class InterfazPrincipal:
 
 		datos = self.rescatarSaldos(cursor)
 		for i in range(len(datos)):
-			# iid es CÓDIGO DEL CLIENTE
+			# iid -> CÓDIGO DEL CLIENTE (tipo str)
 			tree.insert('', 'end', iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
 
-
-		# SELECCIÓN AUTOMÁTICA.
+		# SELECCIÓN AUTOMÁTICA: cada que se crea el <Toplevel>.
 		tree.selection_set("00")
 
 		# ACTUALIZACIÓN PANEL DERECHO:

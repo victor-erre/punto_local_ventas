@@ -140,5 +140,3 @@ def puntoMilConSimbolo(numero):
 					transformado.insert(contador, ".")
 					contador-=4
 			return "$ {}".format("".join(transformado))
-
-
