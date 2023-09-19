@@ -18,6 +18,7 @@ def conexionProyecto():
 		print(sum([i[0] for i in saldos]))
 	except:
 		print("ERROR")
+
 	conexion.commit()
 	cursor.close()
 	conexion.close()
@@ -140,3 +141,24 @@ def puntoMilConSimbolo(numero):
 					transformado.insert(contador, ".")
 					contador-=4
 			return "$ {}".format("".join(transformado))
+
+
+import tkinter as tk
+from tkinter import simpledialog
+
+def obtener_entrada():
+	resultado = simpledialog.askstring("Entrada de Datos", "Ingresa algo:")
+	if resultado:
+		print("Entrada:", resultado)
+	else:
+		print(resultado)
+		print(type(resultado))
+		print("Nada ingresado.")
+
+root = tk.Tk()
+root.geometry("300x200")
+
+boton_abrir_entrada = tk.Button(root, text="Abrir Entrada", command=obtener_entrada)
+boton_abrir_entrada.pack(pady=20)
+
+root.mainloop()
