@@ -143,22 +143,47 @@ def puntoMilConSimbolo(numero):
 			return "$ {}".format("".join(transformado))
 
 
-import tkinter as tk
-from tkinter import simpledialog
+# import tkinter as tk
+# from tkinter import simpledialog
 
-def obtener_entrada():
-	resultado = simpledialog.askstring("Entrada de Datos", "Ingresa algo:")
-	if resultado:
-		print("Entrada:", resultado)
-	else:
-		print(resultado)
-		print(type(resultado))
-		print("Nada ingresado.")
+# def obtener_entrada():
+# 	resultado = simpledialog.askstring("Entrada de Datos", "Ingresa algo:")
+# 	if resultado:
+# 		print("Entrada:", resultado)
+# 	else:
+# 		print(resultado)
+# 		print(type(resultado))
+# 		print("Nada ingresado.")
+
+# root = tk.Tk()
+# root.geometry("300x200")
+
+# boton_abrir_entrada = tk.Button(root, text="Abrir Entrada", command=obtener_entrada)
+# boton_abrir_entrada.pack(pady=20)
+
+# root.mainloop()
+
+import tkinter as tk
+from tkinter.simpledialog import SimpleDialog
+
+def obtener_entrada_personalizada():
+    resultado = SimpleDialog(
+        root,
+        text="Ingrese algo personalizado:",
+        title="Entrada Personalizada",
+        buttonnames=("Aceptar", "Cancelar"),
+        default="",
+    ).show()
+
+    if resultado:
+        print("Entrada:", resultado)
+    else:
+        print("Nada ingresado.")
 
 root = tk.Tk()
 root.geometry("300x200")
 
-boton_abrir_entrada = tk.Button(root, text="Abrir Entrada", command=obtener_entrada)
+boton_abrir_entrada = tk.Button(root, text="Abrir Entrada Personalizada", command=obtener_entrada_personalizada)
 boton_abrir_entrada.pack(pady=20)
 
 root.mainloop()
