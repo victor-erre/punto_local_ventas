@@ -166,4 +166,3 @@ def manejoErrores():
 		return
 	print("fin del intento")
 
-manejoErrores()

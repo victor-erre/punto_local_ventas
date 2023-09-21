@@ -183,7 +183,7 @@ class InterfazPrincipal:
 
 			# si el check de ´incluir a saldos´ está activo, se agrega el nombre de la persona que va deber
 			@conexiones.decoradorBaseDatos
-			def check(tipo, cursor):
+			def check(tipo, cursor, conexion):
 				
 				if tipo == "SALDO":
 
@@ -373,7 +373,7 @@ class InterfazPrincipal:
 			self.interfazSaldos()
 
 	@conexiones.decoradorBaseDatos
-	def generarCodigoCliente(self, cursor):
+	def generarCodigoCliente(self, cursor, conexion):
 
 		cursor.execute("SELECT COD_CLIENTE FROM SALDOS")
 		return str(len(set([x[0] for x in cursor.fetchall()]))).zfill(2)
@@ -436,7 +436,7 @@ class InterfazPrincipal:
 		return df_saldos
 
 	@conexiones.decoradorBaseDatos
-	def interfazSaldos(self, cursor):
+	def interfazSaldos(self, cursor, conexion):
 
 		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se decd documents be crear una clase propio heredando de <Toplevel>)
 		
@@ -454,7 +454,7 @@ class InterfazPrincipal:
 			entAgregarSaldo.delete(0, "end")
 
 		@conexiones.decoradorBaseDatos
-		def actualizarDetalle(event, cursor):
+		def actualizarDetalle(event, cursor, conexion):
 
 			'''
 			ACTUALIZACIÓN: de toda la interfaz, luego de abonar, saldar || agregar a la cuenta
@@ -475,7 +475,7 @@ class InterfazPrincipal:
 			valor_comentario = dato_seleccion.loc["COMENTARIO"].replace("\t","").replace("\n","}").split("}")
 
 			# ACTUALIZCION VALORES.
-			tree.item(tree.selection(),values = (dato_seleccion.loc["CODIGO"], dato_seleccion.loc["NOMBRE"], dato_seleccion.loc["CONCEPTO"], dato_seleccion.loc["SALDO"]- dato_seleccion.loc["ABONO"], dato_seleccion.loc["ABONO"], dato_seleccion.loc["COMENTARIO"]))
+			tree.item(tree.selection(),values = (dato_seleccion.loc["CODIGO"], dato_seleccion.loc["NOMBRE"], dato_seleccion.loc["CONCEPTO"], self.conversiones.puntoMilConSimbolo(dato_seleccion.loc["SALDO"]- dato_seleccion.loc["ABONO"]), dato_seleccion.loc["ABONO"], dato_seleccion.loc["COMENTARIO"]))
 			codigo["text"]=dato_seleccion.loc["CODIGO"]
 			nombre["text"]=dato_seleccion.loc["NOMBRE"]
 
@@ -514,7 +514,7 @@ class InterfazPrincipal:
 			comentario.activate(2)
 
 
-		@conexiones.decoradorBaseDatos2
+		@conexiones.decoradorBaseDatos
 		def abonarSaldo(tipo, cursor, conexion): 
 
 			'''
@@ -522,6 +522,7 @@ class InterfazPrincipal:
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			'''
 
+			# conexion = kwargs["conexion"]
 			valor_seleccion = tree.item(tree.selection())["values"]
 
 			if tipo == "SALDAR":
@@ -596,12 +597,13 @@ class InterfazPrincipal:
 				conexion.commit()
 				actualizarDetalle(None)
 
-		@conexiones.decoradorBaseDatos2	
+		@conexiones.decoradorBaseDatos
 		def agregarSaldo(vacio, cursor, conexion):
 			'''
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			<int valor> --> valor a añadir
 			'''
+			# conexion = kwargs["conexion"]
 			valor_seleccion = tree.item(tree.selection())["values"]
 
 			try:
@@ -760,7 +762,7 @@ class InterfazPrincipal:
 		datos = self.rescatarSaldos(cursor)
 		for i in range(len(datos)):
 			# iid -> CÓDIGO DEL CLIENTE (tipo str)
-			tree.insert('', 'end', iid= datos.iloc[i,0], values=(str(datos.iloc[i, 0]).zfill(2), datos.iloc[i, 1], datos.iloc[i, 2], datos.iloc[i, 3]- datos.iloc[i, 4], datos.iloc[i, 4], datos.iloc[i, 5]), tags=("clienteSeleccionado",))
+			tree.insert('', 'end', iid= datos.iloc[i,0], values=(str(datos.iloc[i, 0]).zfill(2), datos.iloc[i, 1], datos.iloc[i, 2], self.conversiones.puntoMilConSimbolo(datos.iloc[i, 3]- datos.iloc[i, 4]) , datos.iloc[i, 4], datos.iloc[i, 5]), tags=("clienteSeleccionado",))
 
 		# SELECCIÓN AUTOMÁTICA: cada que se crea el <Toplevel>.
 		tree.selection_set("00")
@@ -836,7 +838,7 @@ class InterfazPrincipal:
 				messagebox.showwarning(title="ERROR", message="No es posible realizar la recarga, verifica que todo esté en orden.")
 
 	@conexiones.decoradorBaseDatos
-	def anhadirArticulo(self, cursor, codigo):
+	def anhadirArticulo(self, cursor, conexion, codigo):
 
 		def agregarArticulo(articulo):
 
@@ -919,8 +921,18 @@ class InterfazPrincipal:
 
 	def modificarArticulo(self):
 
-		# * crear esta vista en objeto vistaArbol
+		# * crear esta vista en un objeto vistaArbol
+		# *al presionar el articulo en cuestion habilite el boton para eliminar todo el item.
+		# *haya un elemento(tipo flechas) que pueda disminuir o aumentar la cantidad del articulo en cuestión; con un campo para digitar una cantidad (siempre y cuando haya suficiente en inventario)
+		# *
+
 		def crearVista():
+
+			# treeVista = Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
+			# treeVista.place(relx=0.02, relwidth=0.96, rely=0.02, relheight= 0.86)
+
+			# treeVista.heading("ITEM", text="")
+
 
 			Label(modificarArticulos,text="ITEM").grid(column=0, row=0)
 			Label(modificarArticulos,text="CÓDIGO").grid(column=1, row=0,pady=20, padx=5)
@@ -1010,7 +1022,7 @@ class InterfazPrincipal:
 
 
 	@conexiones.decoradorBaseDatos
-	def compra(self, cursor, **kwargs):
+	def compra(self, cursor, conexion):
 
 		# *Incluir boton para descuentos a la venta general
 
@@ -1337,7 +1349,7 @@ class InterfazAdministrativa(Tk):
 		self.entComentario.delete(0,"end")
 
 	@conexiones.decoradorBaseDatos
-	def generarCodigo(self, cursor):
+	def generarCodigo(self, cursor, conexion):
 
 		if self.entCodigo["state"]=="normal" and self.entCodigo != "":
 
@@ -1361,7 +1373,7 @@ class InterfazAdministrativa(Tk):
 
 
 	@conexiones.decoradorBaseDatos
-	def crearArticulo(self, cursor):
+	def crearArticulo(self, cursor, conexion):
 
 
 		if self.entCodigo["state"]=="normal":
@@ -1416,7 +1428,7 @@ class InterfazAdministrativa(Tk):
 
 
 	@conexiones.decoradorBaseDatos
-	def verArticulo(self,cursor,tipo):
+	def verArticulo(self,cursor, conexion, tipo):
 
 		def organizar(campo, lugar):
 
@@ -1530,7 +1542,7 @@ class InterfazAdministrativa(Tk):
 		# interfazArbol.pack( fill=BOTH, expand=True)
 
 	@conexiones.decoradorBaseDatos
-	def actualizarArticulo(self,cursor):
+	def actualizarArticulo(self,cursor, conexion):
 		# *SE NECESITA ACTUALIZAR INVENTARIO, LO MEJOR ES TENER UN ENTRY EN EL INVENTARIO QUE SUME LOS ARTICULOS NUEVOS
 		# *SE QUITA EL BOTÓN DE ACTUALIZACIONES INDIVIDUALES ¿?
 
@@ -1596,7 +1608,7 @@ class InterfazAdministrativa(Tk):
 			# self.borrarCampos()
 
 	@conexiones.decoradorBaseDatos
-	def eliminarArticulo(self,cursor):
+	def eliminarArticulo(self,cursor, conexion):
 
 		if self.entCodigo.get()!="":
 
@@ -1622,7 +1634,7 @@ class InterfazAdministrativa(Tk):
 		self.borrarCampos()
 
 	@conexiones.decoradorBaseDatos		
-	def verGrafico(self, cursor, rango, categoria):
+	def verGrafico(self, cursor, kwargs, rango, categoria):
 
 
 		# *organizar los diagramas de mayor a menor, con posibilidad de cambiar el orden
@@ -1729,7 +1741,7 @@ class InterfazAdministrativa(Tk):
 			messagebox.showinfo(title = "ERROR", message = "No se registran ventas para esa fecha")
 
 	@conexiones.decoradorBaseDatos
-	def verSaldos(self, cursor):
+	def verSaldos(self, cursor, conexion):
 		# *CREAR UNA TABLA DONDE ESTÉ REGISTRADO LAS PERSONAS QUE DEBAN
 		# *PERMITIR MODIFICACIONES 
 		# self.frameDos.place(relx=.03,rely=.19,relwidth=.94,relheight=.80)
