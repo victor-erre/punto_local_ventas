@@ -90,6 +90,11 @@ def pruebaDataFrame():
 	residencias = ["palmira", "cali", "pereira"]
 	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
 	print(df.iloc[1, 2])
+	serie = df.iloc[1,:]
+	print(serie)
+	serie_trans = serie.tolist()
+	print(serie_trans)
+	print(type(serie_trans))
 
 def tratamientoCadenas():
 
@@ -142,48 +147,23 @@ def puntoMilConSimbolo(numero):
 					contador-=4
 			return "$ {}".format("".join(transformado))
 
+def procesar_numero(numero):
+    if numero < 0:
+        # Lanzar una excepción personalizada
+        raise ValueError("El número no puede ser negativo.")
+    
+    # El procesamiento continúa aquí
+    resultado = numero * 2
+    return resultado
 
-# import tkinter as tk
-# from tkinter import simpledialog
+def manejoErrores():
+	try:
+		valor = 23 + ["hola", "bro"]
+	except ValueError as e:
+		print(e)
+	except TypeError as t:
+		print(t)
+		return
+	print("fin del intento")
 
-# def obtener_entrada():
-# 	resultado = simpledialog.askstring("Entrada de Datos", "Ingresa algo:")
-# 	if resultado:
-# 		print("Entrada:", resultado)
-# 	else:
-# 		print(resultado)
-# 		print(type(resultado))
-# 		print("Nada ingresado.")
-
-# root = tk.Tk()
-# root.geometry("300x200")
-
-# boton_abrir_entrada = tk.Button(root, text="Abrir Entrada", command=obtener_entrada)
-# boton_abrir_entrada.pack(pady=20)
-
-# root.mainloop()
-
-import tkinter as tk
-from tkinter.simpledialog import SimpleDialog
-
-def obtener_entrada_personalizada():
-    resultado = SimpleDialog(
-        root,
-        text="Ingrese algo personalizado:",
-        title="Entrada Personalizada",
-        buttonnames=("Aceptar", "Cancelar"),
-        default="",
-    ).show()
-
-    if resultado:
-        print("Entrada:", resultado)
-    else:
-        print("Nada ingresado.")
-
-root = tk.Tk()
-root.geometry("300x200")
-
-boton_abrir_entrada = tk.Button(root, text="Abrir Entrada Personalizada", command=obtener_entrada_personalizada)
-boton_abrir_entrada.pack(pady=20)
-
-root.mainloop()
+manejoErrores()

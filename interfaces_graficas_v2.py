@@ -378,7 +378,6 @@ class InterfazPrincipal:
 		cursor.execute("SELECT COD_CLIENTE FROM SALDOS")
 		return str(len(set([x[0] for x in cursor.fetchall()]))).zfill(2)
 
-
 	def rescatarSaldos(self, cursor):
 
 		'''
@@ -440,8 +439,6 @@ class InterfazPrincipal:
 	def interfazSaldos(self, cursor):
 
 		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se decd documents be crear una clase propio heredando de <Toplevel>)
-		# *El método 'actualizarDetalle' actualice ambos lados
-		# *El saldo total del lado izquierdo corresponde al saldo inicial(no tiene en cuenta los abonos)
 		
 		'''
 		 MUESTRA la información de los clientes morosos o que han tenido saldo en el negocio.
@@ -460,28 +457,32 @@ class InterfazPrincipal:
 		def actualizarDetalle(event, cursor):
 
 			'''
-			ACTUALIZACIÓN LADO DERECHO (DETALLES DEL CLIENTE).
-			HABILITACIÓN: botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo sea diferente de 0). 
-			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
+			ACTUALIZACIÓN: de toda la interfaz, luego de abonar, saldar || agregar a la cuenta
+			HABILITACIÓN (OPCIONAL): botones y caja de texto (sólo si el cliente debe o lo que es lo mismo, el saldo pendiente sea diferente de 0). 
+			<pandas.DataFrame datos> = COLUMNS: "CODIGO" "NOMBRE" "CONCEPTO" SALDO ABONO "COMENTARIO"
+			<pandas.Series dato_seleccion> = COLUMNS :["CODIGO" "NOMBRE" "CONCEPTO" SALDO ABONO "COMENTARIO"]
 			<list valor_concepto> = [(CANTIDAD "NOMBRE_ARTICULO" PRECIO_TOTAL), ...]
 			<list valor_comentario> = ("PRIMERA LINEA", "SEGUNDA LINEA", ...)
 			'''
 
-			# DECLARACIÓN VARIABLES Y FORMATEO.
-			valor_seleccion = tree.item(tree.selection())["values"]
-			valor_comentario = valor_seleccion[5].replace("\t","").replace("\n","}").split("}")
-			valor_concepto = [i.split() for i in valor_seleccion[2].replace("/","~").split("~")]
+			# BORRAMOS ENTRADAS 
+			borrarEntradas()
+
+			# DEFINICIÓN DE VARIABLES.
+			datos = self.rescatarSaldos(cursor)
+			dato_seleccion = datos.iloc[tree.item(tree.selection())["values"][0]]
+			valor_concepto = [i.split() for i in dato_seleccion.loc["CONCEPTO"].replace("/","~").split("~")]
+			valor_comentario = dato_seleccion.loc["COMENTARIO"].replace("\t","").replace("\n","}").split("}")
 
 			# ACTUALIZCION VALORES.
-			codigo["text"]=str(valor_seleccion[0]).zfill(2)
-			nombre["text"]=valor_seleccion[1]
+			tree.item(tree.selection(),values = (dato_seleccion.loc["CODIGO"], dato_seleccion.loc["NOMBRE"], dato_seleccion.loc["CONCEPTO"], dato_seleccion.loc["SALDO"]- dato_seleccion.loc["ABONO"], dato_seleccion.loc["ABONO"], dato_seleccion.loc["COMENTARIO"]))
+			codigo["text"]=dato_seleccion.loc["CODIGO"]
+			nombre["text"]=dato_seleccion.loc["NOMBRE"]
 
-			# ELIMINACIÓN; evitando una remontada, e INSERCCIÓN CONCEPTO.
-			# HABILITACION DE BOTONES.
-
+			# ELIMINACIÓN; evitando una remontada, e INSERCCIÓN CONCEPTO (HABILITACION: de botones) .
 			concepto.delete(*concepto.get_children())
 
-			if valor_seleccion[3]!=0: 
+			if dato_seleccion.loc["SALDO"]!=0: 
 
 				btnSaldarCliente["state"]="normal"
 				btnAbonoCliente["state"]="normal"
@@ -498,14 +499,11 @@ class InterfazPrincipal:
 
 				concepto.insert("", END, values=["-", "SALDADO", "-"])
 
-			# FORMATEO DE VALORES ECONÓMICOS.
+			saldoInicial["text"]=self.conversiones.puntoMilConSimbolo(dato_seleccion.loc["SALDO"]) 
+			abono["text"]=self.conversiones.puntoMilConSimbolo(dato_seleccion.loc["ABONO"])
+			saldoTotal["text"]=self.conversiones.puntoMilConSimbolo(dato_seleccion.loc["SALDO"] - dato_seleccion.loc["ABONO"])
 
-			saldoInicial["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3]) 
-			abono["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[4])
-			saldoTotal["text"]=self.conversiones.puntoMilConSimbolo(valor_seleccion[3] - valor_seleccion[4])
-
-			# BORRADO Y ADICIÓN COMENTARIO.
-
+			# ELIMINACIÓN; evitando una remontada, e INSERCCIÓN COMENTARIO
 			comentario.delete(0, "end")
 
 			for i in valor_comentario:
@@ -515,8 +513,9 @@ class InterfazPrincipal:
 			
 			comentario.activate(2)
 
-		@conexiones.decoradorBaseDatos
-		def abonarSaldo(tipo, cursor): 
+
+		@conexiones.decoradorBaseDatos2
+		def abonarSaldo(tipo, cursor, conexion): 
 
 			'''
 			<str tipo> = "SALDAR" || "ABONAR"
@@ -533,64 +532,72 @@ class InterfazPrincipal:
 
 				# BORRADO Y ACTUALIZACIÓN: en BBDD.
 				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor_seleccion[0]).zfill(2),))
-				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO) VALUES (?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0) )
+				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0, "NULL") )
 
 				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valor_seleccion[1]), parent=interfaz)
 
-				# ACTUALIZACIÓN: de todos los datos de la Interfaz.
-				tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], "SALDADO", 0, 0, "NULL"))
-				borrarEntradas()
+				conexion.commit()
+				actualizarDetalle(None)
 
 			elif tipo == "ABONAR":
 
-				if entAbonoCliente.get()=="":
+				try:
 
-					messagebox.showwarning("ERROR", "Digita el monto a abonar.", parent=interfaz)
+					if entAbonoCliente.get()=="":
 
-				# VERIFICACIÓN: del criterio de la EntryUser (divisible por 50)
-				elif int(entAbonoCliente.get())%50==0:
+						raise ValueError("La entrada está vacía.\nDigíta un valor.")
+						return
 
-					codigo_cliente = str(valor_seleccion[0]).zfill(2)
+					# VERIFICACIÓN: del criterio de la EntryUser (divisible por 50)
+					elif int(entAbonoCliente.get())%50==0:
 
-					# OBTENCIÓN: del saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
-					cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
-					info_bd = cursor.fetchall()
+						codigo_cliente = str(valor_seleccion[0]).zfill(2)
 
-					# DEFINICIÓN VARIABLES:
-					valor_abonar = int(entAbonoCliente.get())
-					saldo_total = sum([i[0] for i in info_bd])
-					abono_bd = info_bd[0][2]
+						# OBTENCIÓN: del saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
+						cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
+						info_bd = cursor.fetchall()
 
-					# VERIFICACIÓN VALIDEZ: el valor a abonar debe ser el mismo o menor que el saldo más lo abonado.
-					if valor_abonar <= saldo_total - abono_bd:
+						# DEFINICIÓN VARIABLES:
+						valor_abonar = int(entAbonoCliente.get())
+						saldo_total = sum([i[0] for i in info_bd])
+						abono_bd = info_bd[0][2]
 
-						# En igualdad de valores, se llama de vuelta la función pero con el argumento `SALDAR`
-						if valor_abonar == saldo_total - abono_bd:
+						# VERIFICACIÓN VALIDEZ: el valor a abonar debe ser el mismo o menor que el saldo más lo abonado.
+						if valor_abonar <= saldo_total - abono_bd:
 
-							abonarSaldo("SALDAR")
+							# En igualdad de valores, se llama de vuelta la función pero con el argumento `SALDAR`
+							if valor_abonar == saldo_total - abono_bd:
 
+								abonarSaldo("SALDAR")
+
+							else:
+
+								# ACTUALIZACIÓN: valores cliente seleccionado; tanto en BBDD como en la Interfaz.
+								cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
 						else:
 
-							# ACTUALIZACIÓN: valores cliente seleccionado; tanto en BBDD como en la Interfaz.
-
-							cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
-							tree.item(str(valor_seleccion[0]).zfill(2), values=(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], valor_seleccion[2], valor_seleccion[3], abono_bd+valor_abonar, valor_seleccion[5]))
-
+							raise ValueError("No se puede abonar más del saldo pendiente.\nSaldo pendiente: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)))
+							return
 					else:
 
-						messagebox.showwarning("ERROR", "No se puede abonar más del saldo pendiente.\nSaldo pendiente: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)), parent=interfaz)
-						borrarEntradas()
+						raise ValueError("Digita un valor válido.")
 						return
-				else:
 
-					messagebox.showwarning("ERROR", "Digita un valor válido.", parent=interfaz)
+				except ValueError as e:
 
-			# ACTUALIZACIÓN interfaz Y LIMPIEZA entradas:
-			actualizarDetalle(None)
-			borrarEntradas()
+					messagebox.showwarning("ERROR", "{}".format(e), parent=interfaz)
+					return
 
-		@conexiones.decoradorBaseDatos	
-		def agregarSaldo(vacio, cursor):
+				finally:
+
+					borrarEntradas()
+
+				# ACTUALIZACIÓN interfaz Y LIMPIEZA entradas:
+				conexion.commit()
+				actualizarDetalle(None)
+
+		@conexiones.decoradorBaseDatos2	
+		def agregarSaldo(vacio, cursor, conexion):
 			'''
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			<int valor> --> valor a añadir
@@ -601,14 +608,14 @@ class InterfazPrincipal:
 				valor = int(valorAgregar.get())
 
 				if not valor % 50 == 0:
-					raise ValueError
+					raise ValueError("Digita un valor correcto.")
 				else:
 					# COMPROBACIÓN: 
 					cod_seleccion = str(valor_seleccion[0]).zfill(2)
 
 					# CAPTURAMOS el último código de factura y lo modificamos para que sea el cod_factura siguiente.
 					cursor.execute("SELECT COD_FACTURA FROM SALDOS ORDER BY COD_FACTURA DESC")
-					cod_fact = cursor.fetchone()[0]+1
+					cod_fact_sgte = cursor.fetchone()[0]+1
 
 					cursor.execute("SELECT CONCEPTO FROM SALDOS WHERE COD_CLIENTE = (?)", (cod_seleccion,))
 					concepto_seleccion = cursor.fetchone()[0]
@@ -624,23 +631,24 @@ class InterfazPrincipal:
 					else:
 						comentario_nuevo = "{} {} {}\n".format(datetime.date.today().strftime('%d/%m:'),ventana_nueva,self.conversiones.puntoMilConSimbolo(valor)).upper()
 
-					cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)", (cod_seleccion, valor_seleccion[1], cod_fact, "0 SALDO_NUEVO {}".format(valor), valor, valor_seleccion[4], comentario_nuevo ))
+					cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)", (cod_seleccion, valor_seleccion[1], cod_fact_sgte, "0 SALDO_NUEVO {}".format(valor), valor, valor_seleccion[4], comentario_nuevo ))
 					messagebox.showinfo(title="OPERACIÓN EXITOSA", message= "Saldo nuevo agregado con éxito.", parent=interfaz)
 
 					# ACTUALIZACION: de interfaz
-					tree.item(str(valor_seleccion[0]).zfill(2), values=(cod_seleccion, valor_seleccion[1], valor_seleccion[2]+"/0 SALDO_NUEVO {}".format(valor), valor_seleccion[3]+valor, valor_seleccion[4], valor_seleccion[5]+comentario_nuevo))
+					conexion.commit()
 					actualizarDetalle(None)
 
-			except ValueError:
-				messagebox.showwarning(title="ERROR", message= "Digita un valor correcto.", parent=interfaz)
+			except ValueError as e:
+				messagebox.showwarning(title="ERROR", message= "{}".format(e), parent=interfaz)
 			
-			finally:
-				borrarEntradas()				
+			# finally:
+			# 	borrarEntradas()				
 
 		def disable_selection(event):
 			comentario["activestyle"]="none"
 			comentario.select_clear(0, END)
 
+		# <pandas.DataFrame datos> = columns:["CODIGO", "NOMBRE", "CONCEPTO", SALDO, ABONO, "COMENTARIO"]
 
 		# CREACION ventana para mostrar los morosos y su información respectiva
 		interfaz = Toplevel(self.raiz)
@@ -749,12 +757,10 @@ class InterfazPrincipal:
 
 
 		# RESCATE E INSERCCIÓN DE DATOS.
-
 		datos = self.rescatarSaldos(cursor)
 		for i in range(len(datos)):
 			# iid -> CÓDIGO DEL CLIENTE (tipo str)
-			# tree.insert('', 'end', iid= datos.iloc[i,0], values=datos.iloc[i, :].tolist(), tags=("clienteSeleccionado",))
-			tree.insert('', 'end', iid= datos.iloc[i,0], values=(datos.iloc[i, 0], datos.iloc[i, 1], datos.iloc[i, 2]), tags=("clienteSeleccionado",))
+			tree.insert('', 'end', iid= datos.iloc[i,0], values=(str(datos.iloc[i, 0]).zfill(2), datos.iloc[i, 1], datos.iloc[i, 2], datos.iloc[i, 3]- datos.iloc[i, 4], datos.iloc[i, 4], datos.iloc[i, 5]), tags=("clienteSeleccionado",))
 
 		# SELECCIÓN AUTOMÁTICA: cada que se crea el <Toplevel>.
 		tree.selection_set("00")
