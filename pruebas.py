@@ -18,6 +18,7 @@ def conexionProyecto():
 		print(sum([i[0] for i in saldos]))
 	except:
 		print("ERROR")
+
 	conexion.commit()
 	cursor.close()
 	conexion.close()
@@ -89,15 +90,17 @@ def pruebaDataFrame():
 	residencias = ["palmira", "cali", "pereira"]
 	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
 	print(df.iloc[1, 2])
+	serie = df.iloc[1,:]
+	print(serie)
+	serie_trans = serie.tolist()
+	print(serie_trans)
+	print(type(serie_trans))
 
 def tratamientoCadenas():
 
 	frase  = "esta / es la frase ~ que estamos ~colocando de / prueba"
 	divisionPorCaracter = "~".join(frase.split("/")).split("~")
 	print(divisionPorCaracter)
-
-
-
 
 def tkinterListbox():
 
@@ -117,5 +120,50 @@ def tkinterListbox():
 	scroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
 
 	raiz.mainloop()
+	
+def puntoMilConSimbolo(numero):
+		'''
+		Función para asignarle el punto que indica mil (si lo tiene) y ubicar el símbolo de peso a la izquierda de la cifra.
+		'''
+		if len(numero)<=3:
+			return "$ {}".format(numero)
+		else:
+			transformado = list(numero)
+			puntos = len(numero) // 3 
+			residuo = len(numero) % 3
+			contador = -3
 
-print(datetime.date.today().strftime('%d/%m: '))
+			# insertamos los puntos en el lugar indicado.
+			# Si el residuo es cero quiere decir que la cantidad de numeros no es múltiplo de 3 y por ende podemos agregarlos en la posicion -3
+			# si es el punto que indica mil, sino le vamos aumentando -4 cada vez. Si el residuo es cero (ES múltiplo de 3) entonces le quitamos
+			# una unidad a la variable puntos, ya que si tenemos ejemplo 350, 349.000, y asi susesivamente, no podemos poner punto antes de las centenas, centenas de mil, ..
+			if residuo!=0:
+				for i in range(puntos):
+					transformado.insert(contador, ".")
+					contador-=4
+			else:
+				for i in range(puntos-1):
+					transformado.insert(contador, ".")
+					contador-=4
+			return "$ {}".format("".join(transformado))
+
+def procesar_numero(numero):
+    if numero < 0:
+        # Lanzar una excepción personalizada
+        raise ValueError("El número no puede ser negativo.")
+    
+    # El procesamiento continúa aquí
+    resultado = numero * 2
+    return resultado
+
+def manejoErrores():
+	try:
+		valor = 23 + ["hola", "bro"]
+	except ValueError as e:
+		print(e)
+	except TypeError as t:
+		print(t)
+		return
+	print("fin del intento")
+
+manejoErrores()

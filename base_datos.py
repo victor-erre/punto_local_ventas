@@ -160,10 +160,10 @@ def prueba(cursor):
 
 # ++++++++++++++++++++++++++++    INSTRUCCIÓN DE PRUEBA      +++++++++++++++++++++++++++++++++++++++++++
 
-# borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 
-# crearTablas()
+crearTablas()
 
-# prueba()
+prueba()
 
 # borrarTablas()	
