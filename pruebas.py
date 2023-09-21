@@ -6,6 +6,21 @@ import sqlite3
 # import time
 import datetime
 
+class Modificadora:
+	def modificarFuncion(funcion):
+
+		def modificadora(*args, **kwargs):
+
+			conexion = sqlite3.connect("C:/Users/ASUS/Documents/documentos_vr/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+			cursor = conexion.cursor()
+			kwargs = {"conexion":conexion, "cursor":cursor}
+			funcion(*args, **kwargs)
+			conexion.commit()
+			cursor.close()
+			conexion.close()
+
+		return modificadora
+
 def conexionProyecto():
 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 	cursor = conexion.cursor()
@@ -166,3 +181,9 @@ def manejoErrores():
 		return
 	print("fin del intento")
 
+@Modificadora.modificarFuncion
+def funcionPrueba(*args,**kwargs):
+	print(kwargs["conexion"])
+	print(kwargs["cursor"])
+
+funcionPrueba()

@@ -2,7 +2,7 @@ from tkinter import Frame,BROWSE,NONE, BOTH,X, Y, Listbox, Label, LabelFrame, Ch
 
 # POTTER: REGISTRADORA CASIO PCR - T285
 import conexiones
-import pandas
+#import pandas
 import time
 import datetime
 import matplotlib.pyplot as plt
@@ -90,7 +90,7 @@ class Validaciones:
 		else:
 			return False
 
-
+	# *
 	def numeroCelular(self, numero):
 		if numero == "":
 			return True
@@ -397,7 +397,7 @@ class InterfazPrincipal:
 
 			for indice, data in df_saldos.iterrows():
 
-				if saldo[0] == data[0]:
+				if saldo[0] == data.iloc[0]:
 
 					# Si el saldo del moroso NO es cero, agregamos el concepto, de los contrario registramos como saldado.
 					# NOTA: sólo debe haber un registro como saldado en la BBDD

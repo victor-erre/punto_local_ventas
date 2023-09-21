@@ -1,0 +1,16 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "build_systems": [
+        {
+            "name": "Python Virtualenv",
+            "cmd": ["C:\\\\Users\\\\ASUS\\\\Documents\\\\documentos_vr\\\\proyecto-vr-env\\\\Scripts\\\\python.exe", "-u", "$file"],
+            "env": {
+                "PYTHONPATH": "$project_path"
+            }
+        }
+    ]
+}
