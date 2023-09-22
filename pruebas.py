@@ -6,20 +6,6 @@ import sqlite3
 # import time
 import datetime
 
-class Modificadora:
-	def modificarFuncion(funcion):
-
-		def modificadora(*args, **kwargs):
-
-			conexion = sqlite3.connect("C:/Users/ASUS/Documents/documentos_vr/punto_local_ventas/BASE_DATOS_PRUEBA.db")
-			cursor = conexion.cursor()
-			kwargs = {"conexion":conexion, "cursor":cursor}
-			funcion(*args, **kwargs)
-			conexion.commit()
-			cursor.close()
-			conexion.close()
-
-		return modificadora
 
 def conexionProyecto():
 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
@@ -50,6 +36,7 @@ def tkinterTreeview():
 
 	def borrarElementos():
 		arbol.delete(*arbol.get_children())
+		#arbol.delete('1', 'end')
 
 	def imprimirElementos():
 		print(arbol.get_children())
@@ -104,12 +91,11 @@ def pruebaDataFrame():
 	edades = [25, 64, 35]
 	residencias = ["palmira", "cali", "pereira"]
 	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
-	print(df.iloc[1, 2])
 	serie = df.iloc[1,:]
-	print(serie)
 	serie_trans = serie.tolist()
-	print(serie_trans)
-	print(type(serie_trans))
+	for llave, valor in df.iterrows():
+		print(valor)
+		print(type(valor))
 
 def tratamientoCadenas():
 
@@ -181,9 +167,35 @@ def manejoErrores():
 		return
 	print("fin del intento")
 
-@Modificadora.modificarFuncion
-def funcionPrueba(*args,**kwargs):
-	print(kwargs["conexion"])
-	print(kwargs["cursor"])
+def modificarFuncion(funcion):
 
-funcionPrueba()
+	def modificadora():
+
+		conexion = sqlite3.connect("C:/Users/ASUS/Documents/documentos_vr/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+		cursor = conexion.cursor()
+		args = ["hola", "mi perro"]
+		kwargs = {"conexion":conexion, "cursor":cursor}
+		funcion(*args, **kwargs)
+		conexion.commit()
+		cursor.close()
+		conexion.close()
+	
+
+	return modificadora
+
+
+@modificarFuncion
+def funcionPrueba(  *args, **kwargs):
+	print(numero)
+	print(args)
+	print(kwargs)
+	cursor = kwargs["cursor"]
+	conexion = kwargs["conexion"]
+	cursor.execute("SELECT COD_FACTURA FROM SALDOS")
+	prueba = cursor.fetchall()
+	print(prueba)
+
+	# Devuelve los valores que deseas
+	return 
+
+pruebaDataFrame()

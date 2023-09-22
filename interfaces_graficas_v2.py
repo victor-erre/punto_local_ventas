@@ -921,98 +921,135 @@ class InterfazPrincipal:
 
 	def modificarArticulo(self):
 
-		# * crear esta vista en un objeto vistaArbol
-		# *al presionar el articulo en cuestion habilite el boton para eliminar todo el item.
-		# *haya un elemento(tipo flechas) que pueda disminuir o aumentar la cantidad del articulo en cuestión; con un campo para digitar una cantidad (siempre y cuando haya suficiente en inventario)
-		# *
+		# *al presionar el articulo en cuestion habilite los botones para eliminar o aumentar, de acuerdo a la cantidad en inventario y la cantidad en la lista.
+		#* cuando la cantidad en el carro sea igual que en inventario, se deshabilite el botón aumentar, y saldo un Label que indique que no se puede durante 2 seg.
+		#*la modificacion se vea reflejada en simultáneo.
+		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
 
 		def crearVista():
 
-			# treeVista = Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
-			# treeVista.place(relx=0.02, relwidth=0.96, rely=0.02, relheight= 0.86)
+			@conexiones.decoradorBaseDatos
+			def modificarCantidad(vacio, cursor, conexion, tipo):
+				cod_sel = treeVista.item(treeVista.selection())["values"][1]
+				cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (cod_sel,))
+				cant_BBDD = cursor.fetchone()[0]
+				print(cant_BBDD)
+				print(cod_sel)
 
-			# treeVista.heading("ITEM", text="")
+			treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
+			treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.86)
+
+			Label(interfazArticulos, text = "MODIFICAR\nCANTIDAD", width = 15).place(relx=0.88, rely=0.02, relwidt=0.11)
+
+			btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad(None, "MAS"))
+			btnAumentar.place(relx=0.92, rely=0.08)
+
+			btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad(None, "MENOSS"))
+			btnDisminuir.place(relx=0.92, rely=0.12)
+
+			treeVista.column("#0", width=0, stretch=NO)
+			treeVista.column("ITEM", width = 10, anchor = "center")
+			treeVista.column("CODIGO", width = 10, anchor = "center")
+			treeVista.column("NOMBRE", width = 10, anchor = "center")
+			treeVista.column("PRECIO", width = 10, anchor = "center")
+			treeVista.column("CANTIDAD", width = 10, anchor = "center")
+			treeVista.column("TOTAL", width = 10, anchor = "center")
+
+			#treeVista.heading("#0")
+			treeVista.heading("ITEM", text = "ITEM")
+			treeVista.heading("CODIGO", text="CODIGO")
+			treeVista.heading("NOMBRE", text = "NOMBRE")
+			treeVista.heading("PRECIO", text = "PRECIO")
+			treeVista.heading("CANTIDAD", text = "CANTIDAD")
+			treeVista.heading("TOTAL", text = "TOTAL")
 
 
-			Label(modificarArticulos,text="ITEM").grid(column=0, row=0)
-			Label(modificarArticulos,text="CÓDIGO").grid(column=1, row=0,pady=20, padx=5)
-			Label(modificarArticulos,text="NOMBRE").grid(column=2, row=0)
-			Label(modificarArticulos,text="PRECIO").grid(column=3, row=0)
-			Label(modificarArticulos,text="CANTIDAD").grid(column=4, row=0)
-			Label(modificarArticulos,text="TOTAL").grid(column=5, row=0)
-			Label(modificarArticulos,text="ELIMINAR").grid(column=6, row=0)
 
-			valorTotal = self.listaCompra["SUB_TOTAL"].sum()
+			#Label(modificarArticulos,text="ITEM").grid(column=0, row=0)
+			#Label(modificarArticulos,text="CÓDIGO").grid(column=1, row=0,pady=20, padx=5)
+			#Label(modificarArticulos,text="NOMBRE").grid(column=2, row=0)
+			#Label(modificarArticulos,text="PRECIO").grid(column=3, row=0)
+			#Label(modificarArticulos,text="CANTIDAD").grid(column=4, row=0)
+			#Label(modificarArticulos,text="TOTAL").grid(column=5, row=0)
+			#Label(modificarArticulos,text="ELIMINAR").grid(column=6, row=0)
 
+			valorTotal = self.listaCompra.iloc[:,4].sum()
+			contador = 1
+
+			for llave, valor in self.listaCompra.iterrows():
+				treeVista.insert("","end", iid = contador, values = (contador, valor.loc["CODIGO"], valor.loc["NOMBRE"],valor.loc["PRECIO_UNIT"], valor.loc["CANTIDAD_COMPRA"], valor.loc["SUB_TOTAL"]))
+				contador += 1
+
+			treeVista.selection_set(1)
 			# self.listaCompra = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
 			# interfaz = "ITEM=POSICION DEL ARTICULO" "CODIGO" "NOMBRE" "PRECIO" "CANTIDAD" "TOTAL" "ELIMINAR"
-			if len(self.listaCompra)>0:
+			
+			#if len(self.listaCompra)>0:
 
 
-				for i in range(len(self.listaCompra)):
+				#for i in range(len(self.listaCompra)):
 
-					for k in range(7):
+					#for k in range(7):
 
 						# agregamos el indice a cada articulo agrupandolos por nombre
-						if k == 0:
+						#if k == 0:
 
-							etiqueta = Label(modificarArticulos, text=i)
+							#etiqueta = Label(modificarArticulos, text=i)
 
 						# agregamos el botón para eliminar de a un articulo.
-						elif k != 6:
+						#elif k != 6:
 							
-							etiqueta = Label(modificarArticulos, text=self.listaCompra.iloc[i, k-1])
+							#etiqueta = Label(modificarArticulos, text=self.listaCompra.iloc[i, k-1])
 
-						else:
+						#else:
 
-							etiqueta=Button(modificarArticulos,text="Eliminar", command=lambda i=i : quitarArticulo(i))
+							#etiqueta=Button(modificarArticulos,text="Eliminar", command=lambda i=i : quitarArticulo(i))
 
-						etiqueta.grid(column=k, row=i+1)
+						#etiqueta.grid(column=k, row=i+1)
 
-			Label(modificarArticulos, text="TOTAL------>").grid(column=0,columnspan=2,row=len(self.listaCompra)+2, sticky="nsew")
+			#Label(modificarArticulos, text="TOTAL------>").grid(column=0,columnspan=2,row=len(self.listaCompra)+2, sticky="nsew")
 
 
-			self.lblTotal = Label(modificarArticulos, text="$ "+str(valorTotal))
-			self.lblTotal.grid(column=5, row=len(self.listaCompra)+2)
+			#self.lblTotal = Label(modificarArticulos, text="$ "+str(valorTotal))
+			#self.lblTotal.grid(column=5, row=len(self.listaCompra)+2)
 
-			Button(modificarArticulos, text = "ELIMINAR TODO", command= reiniciarLista).grid(column = 6, row=self.lblTotal.grid_info()["row"])
+			#Button(modificarArticulos, text = "ELIMINAR TODO", command= reiniciarLista).grid(column = 6, row=self.lblTotal.grid_info()["row"])
 
 		def reiniciarLista():
 
 			# cuando presionamos eliminar todo, en la interfaz de la modicacion de compra.
 
-			for w in modificarArticulos.winfo_children():
-				w.destroy()
+			treeVista.delete(*treeVista.get_children())
 
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=len(self.listaCompra))
 
 			crearVista()
 
-		def quitarArticulo(indice):
+		#def quitarArticulo(indice):
 
-			for w in modificarArticulos.winfo_children():
-				w.destroy()
+			#for w in modificarArticulos.winfo_children():
+				#w.destroy()
 
 			# self.listaCompra = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
-			if self.listaCompra.iloc[indice, 3] == 1:
-				self.listaCompra.drop(index = indice, inplace=True)
-				self.listaCompra.reset_index(drop=True, inplace=True)
+			#if self.listaCompra.iloc[indice, 3] == 1:
+				#self.listaCompra.drop(index = indice, inplace=True)
+				#self.listaCompra.reset_index(drop=True, inplace=True)
 			
 
-			else:
-				self.listaCompra.iloc[indice, 3]-= 1
-				self.listaCompra.iloc[indice, 4] = int(self.listaCompra.iloc[indice, 2] * self.listaCompra.iloc[indice,3])
+			#else:
+				#self.listaCompra.iloc[indice, 3]-= 1
+				#self.listaCompra.iloc[indice, 4] = int(self.listaCompra.iloc[indice, 2] * self.listaCompra.iloc[indice,3])
 
-			self.cantidadListaCompra.config(text=len(self.listaCompra))
-			crearVista()
+			#self.cantidadListaCompra.config(text=len(self.listaCompra))
+			#crearVista()
 			
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda _ : interfazArticulos.destroy())
 		interfazArticulos.focus_set()
 		interfazArticulos.geometry("500x500")
-		modificarArticulos = Frame(interfazArticulos)
-		modificarArticulos.pack(expand = True, fill = BOTH)
+		#modificarArticulos = Frame(interfazArticulos)
+		#modificarArticulos.pack(expand = True, fill = BOTH)
 		crearVista()
 
 	def generarCodigoCliente(self,cursor):
