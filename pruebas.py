@@ -96,7 +96,8 @@ def pruebaDataFrame():
 	for llave, valor in df.iterrows():
 		print(valor)
 		print(type(valor))
-
+	print(len(df))
+	
 def tratamientoCadenas():
 
 	frase  = "esta / es la frase ~ que estamos ~colocando de / prueba"
@@ -169,13 +170,14 @@ def manejoErrores():
 
 def modificarFuncion(funcion):
 
-	def modificadora():
+	def modificadora(var1, var2, *args, **kwargs):
+	# def modificadora( *args, **kwargs):
 
-		conexion = sqlite3.connect("C:/Users/ASUS/Documents/documentos_vr/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+		conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
 		cursor = conexion.cursor()
 		args = ["hola", "mi perro"]
 		kwargs = {"conexion":conexion, "cursor":cursor}
-		funcion(*args, **kwargs)
+		funcion(var1, var2, *args, **kwargs)
 		conexion.commit()
 		cursor.close()
 		conexion.close()
@@ -185,17 +187,17 @@ def modificarFuncion(funcion):
 
 
 @modificarFuncion
-def funcionPrueba(  *args, **kwargs):
-	print(numero)
+def funcionPrueba( var1, var2, *args, **kwargs):
+	print(var1)
 	print(args)
 	print(kwargs)
 	cursor = kwargs["cursor"]
 	conexion = kwargs["conexion"]
 	cursor.execute("SELECT COD_FACTURA FROM SALDOS")
 	prueba = cursor.fetchall()
-	print(prueba)
 
 	# Devuelve los valores que deseas
 	return 
 
-pruebaDataFrame()
+# funcionPrueba("hola", "chao")
+
