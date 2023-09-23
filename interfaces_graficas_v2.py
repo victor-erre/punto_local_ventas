@@ -923,9 +923,10 @@ class InterfazPrincipal:
 	def modificarArticulo(self):
 
 		# *al presionar el articulo en cuestion habilite los botones para eliminar o aumentar, de acuerdo a la cantidad en inventario y la cantidad en la lista.
-		#* cuando la cantidad en el carro sea igual que en inventario, se deshabilite el botón aumentar, y saldo un Label que indique que no se puede durante 2 seg.
-		#*la modificacion se vea reflejada en simultáneo.
+		# ...cuando la cantidad en el carro sea igual que en inventario, se deshabilite el botón aumentar, y saldo un Label que indique que no se puede durante 2 seg.
+		#* la modificacion se vea reflejada en simultáneo.
 		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
+
 
 		def reiniciarLista():
 
@@ -934,35 +935,26 @@ class InterfazPrincipal:
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)
 
-		@conexiones.decoradorBaseDatos
-		def modificarCantidad(vacio, cursor, conexion, tipo):
+		@conexiones.decoradorBaseDatos2
+		def modificarCantidad(tipo, *args, **kwargs):
 
-			cod_sel = treeVista.item(treeVista.selection())["values"][1]
-			cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (cod_sel,))
-			cant_BBDD = cursor.fetchone()[0]
+			if len(self.listaCompra)>0:
+
+				cursor = kwargs["cursor"]
+				conexion = kwargs["conexion"]
+				seleccion = {"codigo":treeVista.item(treeVista.selection())["values"][1], "q_comprar":treeVista.item(treeVista.selection())["values"][4], "q_BBDD":0}
+				cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (seleccion["codigo"],))
+				cant_BBDD = cursor.fetchone()[0]
+				seleccion["q_BBDD"]=cant_BBDD
+				print(seleccion)
+				print("codigo:",seleccion["codigo"])
+				print("cantidad comprar:",seleccion["q_comprar"])
+				print("cantidad BBDD:",seleccion["q_BBDD"])
 
 			if tipo == "MAS":
 				print("aumentar cantidad")
 			else:
 				print("disminuir cantidad")
-			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
-			# cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (cod_sel,))
-			# cant_BBDD = cursor.fetchone()[0]
-			# print(cant_BBDD)
-			# print(cod_sel)
-
-		# def impresion():
-
-		# 	if len(self.listaCompra) != 0:
-
-		# 		valorTotal = self.listaCompra.iloc[:,4].sum()
-		# 		contador = 1
-
-		# 		for llave, valor in self.listaCompra.iterrows():
-		# 			treeVista.insert("","end", iid = contador, values = (contador, valor.loc["CODIGO"], valor.loc["NOMBRE"],valor.loc["PRECIO_UNIT"], valor.loc["CANTIDAD_COMPRA"], valor.loc["SUB_TOTAL"]))
-		# 			contador += 1
-
-		# 		lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
 			
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda _ : interfazArticulos.destroy())
@@ -975,10 +967,10 @@ class InterfazPrincipal:
 
 		Label(interfazArticulos, text = "CANTIDAD", width = 15).place(relx=0.88, rely=0.02, relwidt=0.11)
 
-		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad(None, "MAS"))
+		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
 
-		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad(None, "MENOS"))
+		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS"))
 		btnDisminuir.place(relx=0.92, rely=0.12)
 
 		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR", width = 12, command = reiniciarLista)

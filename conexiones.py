@@ -1,18 +1,18 @@
 import sqlite3
 
-# def decoradorBaseDatos(funcion):
+def decoradorBaseDatos2(funcion):
 
-# 	def modificadora(self, *args,**kwargs):
+	def modificadora(var1 ,*args,**kwargs):
 
-# 		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
-# 		cursor = conexion.cursor()
-# 		kwargs = {"conexion":conexion}
-# 		funcion(self, cursor, *args, **kwargs)
-# 		conexion.commit()
-# 		cursor.close()
-# 		conexion.close()
+		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
+		cursor = conexion.cursor()
+		kwargs = {"conexion":conexion, "cursor":cursor}
+		funcion(var1, *args, **kwargs)
+		conexion.commit()
+		cursor.close()
+		conexion.close()
 
-# 	return modificadora
+	return modificadora
 
 def decoradorBaseDatos(funcion):
 

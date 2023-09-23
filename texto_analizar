@@ -1,0 +1,83 @@
+# * crear esta vista en objeto vistaArbol
+		def crearVista():
+
+			Label(modificarArticulos,text="ITEM").grid(column=0, row=0)
+			Label(modificarArticulos,text="CÓDIGO").grid(column=1, row=0,pady=20, padx=5)
+			Label(modificarArticulos,text="NOMBRE").grid(column=2, row=0)
+			Label(modificarArticulos,text="PRECIO").grid(column=3, row=0)
+			Label(modificarArticulos,text="CANTIDAD").grid(column=4, row=0)
+			Label(modificarArticulos,text="TOTAL").grid(column=5, row=0)
+			Label(modificarArticulos,text="ELIMINAR").grid(column=6, row=0)
+
+			valorTotal = self.listaCompra["SUB_TOTAL"].sum()
+
+			# self.listaCompra = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
+			# interfaz = "ITEM=POSICION DEL ARTICULO" "CODIGO" "NOMBRE" "PRECIO" "CANTIDAD" "TOTAL" "ELIMINAR"
+			if len(self.listaCompra)>0:
+
+
+				for i in range(len(self.listaCompra)):
+
+					for k in range(7):
+
+						# agregamos el indice a cada articulo agrupandolos por nombre
+						if k == 0:
+
+							etiqueta = Label(modificarArticulos, text=i)
+
+						# agregamos el botón para eliminar de a un articulo.
+						elif k != 6:
+							
+							etiqueta = Label(modificarArticulos, text=self.listaCompra.iloc[i, k-1])
+
+						else:
+
+							etiqueta=Button(modificarArticulos,text="Eliminar", command=lambda i=i : quitarArticulo(i))
+
+						etiqueta.grid(column=k, row=i+1)
+
+			Label(modificarArticulos, text="TOTAL------>").grid(column=0,columnspan=2,row=len(self.listaCompra)+2, sticky="nsew")
+
+
+			self.lblTotal = Label(modificarArticulos, text="$ "+str(valorTotal))
+			self.lblTotal.grid(column=5, row=len(self.listaCompra)+2)
+
+			Button(modificarArticulos, text = "ELIMINAR TODO", command= reiniciarLista).grid(column = 6, row=self.lblTotal.grid_info()["row"])
+
+		def reiniciarLista():
+
+			# cuando presionamos eliminar todo, en la interfaz de la modicacion de compra.
+
+			for w in modificarArticulos.winfo_children():
+				w.destroy()
+
+			self.listaCompra.drop(self.listaCompra.index, inplace=True)
+			self.cantidadListaCompra.config(text=len(self.listaCompra))
+
+			crearVista()
+
+		def quitarArticulo(indice):
+
+			for w in modificarArticulos.winfo_children():
+				w.destroy()
+
+			# self.listaCompra = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
+			if self.listaCompra.iloc[indice, 3] == 1:
+				self.listaCompra.drop(index = indice, inplace=True)
+				self.listaCompra.reset_index(drop=True, inplace=True)
+			
+
+			else:
+				self.listaCompra.iloc[indice, 3]-= 1
+				self.listaCompra.iloc[indice, 4] = int(self.listaCompra.iloc[indice, 2] * self.listaCompra.iloc[indice,3])
+
+			self.cantidadListaCompra.config(text=len(self.listaCompra))
+			crearVista()
+			
+		interfazArticulos = Toplevel()
+		interfazArticulos.bind("<Escape>", lambda _ : interfazArticulos.destroy())
+		interfazArticulos.focus_set()
+		interfazArticulos.geometry("500x500")
+		modificarArticulos = Frame(interfazArticulos)
+		modificarArticulos.pack(expand = True, fill = BOTH)
+		crearVista()
