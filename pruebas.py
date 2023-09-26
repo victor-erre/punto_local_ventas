@@ -94,10 +94,10 @@ def pruebaDataFrame():
 	serie = df.iloc[1,:]
 	serie_trans = serie.tolist()
 	for llave, valor in df.iterrows():
-		print(valor)
-		print(type(valor))
-	print(len(df))
-	
+		# print(valor)
+		pass
+	print(df.iloc[:,1].tolist())
+
 def tratamientoCadenas():
 
 	frase  = "esta / es la frase ~ que estamos ~colocando de / prueba"
@@ -199,5 +199,31 @@ def funcionPrueba( var1, var2, *args, **kwargs):
 	# Devuelve los valores que deseas
 	return 
 
-# funcionPrueba("hola", "chao")
+diccio = {"hola":33, "chao":44}
+for i in diccio:
+	print(diccio[i])
 
+import pandas as pd
+
+# Crear un DataFrame de ejemplo
+data = {'A': [1, 2, 3],
+        'B': [4, 5, 6],
+        'C': [7, 8, 9]}
+
+df = pd.DataFrame(data)
+
+# Mostrar el DataFrame original
+print("DataFrame original:")
+print(df)
+
+# Modificar un valor en un campo específico
+fila_index = 1  # Índice de la fila que deseas modificar
+columna_name = 'B'  # Nombre de la columna que deseas modificar
+nuevo_valor = 99  # Nuevo valor que deseas asignar
+
+# Utilizando .at[]
+df.at[fila_index, columna_name] = nuevo_valor
+
+# Mostrar el DataFrame modificado
+print("\nDataFrame modificado:")
+print(df)

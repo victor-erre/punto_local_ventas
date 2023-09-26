@@ -927,37 +927,92 @@ class InterfazPrincipal:
 		#* la modificacion se vea reflejada en simultáneo.
 		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
 
+		def seleccionArticulo(event, cod_sel):
+
+			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
+
+			if validacion[cod_sel][0] == validacion[cod_sel][1]: 
+				btnAumentar["state"]= "disabled" 
+			else:
+				btnAumentar["state"]= "normal"
+
+			# pass
+		def salir(event):
+
+			print("chao")
+			conexion.commit()
+			cursor.close()
+			conexion.close()
+			interfazArticulos.destroy()
 
 		def reiniciarLista():
 
 			treeVista.delete(*treeVista.get_children())
 
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
-			self.cantidadListaCompra.config(text=0)
+			self.cantidadListaCompra.config(text=0)		
 
-		@conexiones.decoradorBaseDatos2
-		def modificarCantidad(tipo, *args, **kwargs):
-
-			if len(self.listaCompra)>0:
-
-				cursor = kwargs["cursor"]
-				conexion = kwargs["conexion"]
-				seleccion = {"codigo":treeVista.item(treeVista.selection())["values"][1], "q_comprar":treeVista.item(treeVista.selection())["values"][4], "q_BBDD":0}
-				cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (seleccion["codigo"],))
-				cant_BBDD = cursor.fetchone()[0]
-				seleccion["q_BBDD"]=cant_BBDD
-				print(seleccion)
-				print("codigo:",seleccion["codigo"])
-				print("cantidad comprar:",seleccion["q_comprar"])
-				print("cantidad BBDD:",seleccion["q_BBDD"])
-
-			if tipo == "MAS":
-				print("aumentar cantidad")
-			else:
-				print("disminuir cantidad")
+		# @conexiones.decoradorBaseDatos2
+		def modificarCantidad(tipo):
 			
+			cod_sel = treeVista.item(treeVista.selection())["values"][1]
+			if tipo == "MAS":
+				for indice, serie in self.listaCompra.iterrows():
+					if serie.loc["CODIGO"]==cod_sel:
+						print("aumentar cantidad")
+						print(indice)
+						print(serie)
+						# *aumentarle la cantidad al carrito
+						seleccionArticulo(None, cod_sel)
+						# pass
+				# self.listaCompra
+			if tipo == "MENOS":
+				for indice, serie in self.listaCompra.iterrows():
+					if serie.loc["CODIGO"]==cod_sel:
+						print("mermar cantidad")
+						print(indice)
+						print(serie)
+						
+			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
+			# cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (cod_sel,))
+
+			# cant_compra = 0
+			# for llave, valor in self.listaCompra.iterrows():
+			# 	if valor["CODIGO"] == cod_sel:
+			# 		cant_compra = valor["CANTIDAD_COMPRA"]
+			# 		break 	
+
+			# if cantidad["BBDD"] == cantidad["compra"]:
+
+		# 	if len(self.listaCompra)>0:
+
+		# 		# seleccion = 
+		# 		seleccion = {"codigo":treeVista.item(treeVista.selection())["values"][1], "q_comprar":treeVista.item(treeVista.selection())["values"][4]}
+		# 		cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (seleccion["codigo"],))
+		# 		seleccion["q_BBDD"] = cursor.fetchone()[0]
+		# 		# seleccion["q_BBDD"]=cant_BBDD
+		# 		print(seleccion)
+		# 		print("codigo:",seleccion["codigo"])
+		# 		print("cantidad comprar:",seleccion["q_comprar"])
+		# 		print("cantidad BBDD:",seleccion["q_BBDD"])
+
+		# 		if tipo == "MAS":
+				# 	if seleccion["q_comprar"] == seleccion["q_BBDD"]:
+				# 		pass
+
+				# else:	
+				# 	print("disminuir cantidad")
+
+		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
+		cursor = conexion.cursor()
+
+		# tope_art = {}
+		# for i, j in self.listaCompra.iterrows():
+		# 	tope_art.update({j.loc["CODIGO"]:(j.loc["CANTIDAD"])})
+
 		interfazArticulos = Toplevel()
-		interfazArticulos.bind("<Escape>", lambda _ : interfazArticulos.destroy())
+		interfazArticulos.bind("<Escape>", lambda _ : salir(_))
+
 		interfazArticulos.focus_set()
 		interfazArticulos.grab_set()
 		interfazArticulos.geometry("500x500")
@@ -965,7 +1020,9 @@ class InterfazPrincipal:
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
 		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.86)
 
-		Label(interfazArticulos, text = "CANTIDAD", width = 15).place(relx=0.88, rely=0.02, relwidt=0.11)
+		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event, treeVista.item(treeVista.selection())["values"][1] ))
+
+		Label(interfazArticulos, text = "CANTIDAD", width = 15).place(relx=0.88, rely=0.02)
 
 		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
@@ -1011,6 +1068,21 @@ class InterfazPrincipal:
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
 
 			treeVista.selection_set(1)
+
+
+		codigos = self.listaCompra.iloc[:,0].tolist()
+		cursor.execute("SELECT CODIGO, CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
+		inventario = {}
+		for i in cursor.fetchall():
+			inventario.update({i[0]:i[1]})
+		# FORMATO: validacion = {"codigo_articulo":[cantidad_inventario, cantidad_compra]}
+		validacion = {}
+		for llave, valor in self.listaCompra.iterrows():
+			for i in inventario:
+				if valor.loc["CODIGO"] == i:
+					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
+				continue
+		print(validacion)
 
 	def generarCodigoCliente(self,cursor):
 
