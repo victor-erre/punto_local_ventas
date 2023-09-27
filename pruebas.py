@@ -5,6 +5,7 @@ import pandas
 import sqlite3
 # import time
 import datetime
+import numpy
 
 
 def conexionProyecto():
@@ -12,17 +13,22 @@ def conexionProyecto():
 	cursor = conexion.cursor()
 	# cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
 	# cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
-	cursor.execute("SELECT SALDO FROM SALDOS WHERE NOMBRE_CLIENTE = (?)", ("cliente nueve",))
+	cursor.execute("SELECT * FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", ("PA078", ))
 	try:
-		saldos = cursor.fetchall()
+		# saldos = cursor.fetchall()
+		saldos = cursor.fetchone()
 		print(saldos)
-		print(sum([i[0] for i in saldos]))
-	except:
-		print("ERROR")
-
+		print(type(saldos))
+		# print(sum([i[0] for i in saldos]))
+	except ValueError as e:
+		print(e)
+	except AttributeError as ae:
+		print(ae)
 	conexion.commit()
 	cursor.close()
 	conexion.close()
+
+# conexionProyecto()
 
 def tkinterTreeview():
 
@@ -90,14 +96,21 @@ def pruebaDataFrame():
 	apellidos = ["ruiz", "lopez", "quiñonez"]
 	edades = [25, 64, 35]
 	residencias = ["palmira", "cali", "pereira"]
-	df = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"))
-	serie = df.iloc[1,:]
-	serie_trans = serie.tolist()
-	for llave, valor in df.iterrows():
-		# print(valor)
-		pass
-	print(df.iloc[:,1].tolist())
 
+	df1 = pandas.DataFrame(columns = ["nombre", "apellido", "edad", "residencia"])
+	df2 = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
+
+	df1 = pandas.concat([df1, df2])
+	for i in df1:
+		print(i)
+pruebaDataFrame()
+
+def pruebaSeries():
+
+	serie = pandas.Series(data = ("victor", "alfonso", "ruiz", 23), index = ("nombre", "segundonombre", "apellido", "edad"), name = "prueba")
+	serie.loc["edad"] +=1
+
+# pruebaSeries()
 def tratamientoCadenas():
 
 	frase  = "esta / es la frase ~ que estamos ~colocando de / prueba"
@@ -199,31 +212,93 @@ def funcionPrueba( var1, var2, *args, **kwargs):
 	# Devuelve los valores que deseas
 	return 
 
-diccio = {"hola":33, "chao":44}
-for i in diccio:
-	print(diccio[i])
 
-import pandas as pd
+# def anhadirArticulo():
 
-# Crear un DataFrame de ejemplo
-data = {'A': [1, 2, 3],
-        'B': [4, 5, 6],
-        'C': [7, 8, 9]}
+# 	def agregarArticulo(articulo, listaCompra):
+# 		if articulo["CANTIDAD_STOCK"] > 0:
 
-df = pd.DataFrame(data)
+# 			indice_lista = [False,0]
 
-# Mostrar el DataFrame original
-print("DataFrame original:")
-print(df)
+# 			for i in range(len(listaCompra)):
+# 				if listaCompra.loc[i,"CODIGO"] == articulo["CODIGO"]:
+# 					indice_lista[0] = True
+# 					indice_lista[1] = i
+# 					break
 
-# Modificar un valor en un campo específico
-fila_index = 1  # Índice de la fila que deseas modificar
-columna_name = 'B'  # Nombre de la columna que deseas modificar
-nuevo_valor = 99  # Nuevo valor que deseas asignar
 
-# Utilizando .at[]
-df.at[fila_index, columna_name] = nuevo_valor
+# 			if indice_lista[0]:
 
-# Mostrar el DataFrame modificado
-print("\nDataFrame modificado:")
-print(df)
+# 				if articulo["CANTIDAD_STOCK"] >= (listaCompra.loc[indice_lista[1],"CANTIDAD_COMPRA"]+1):
+					
+# 					articulo_modificar = listaCompra.iloc[indice_lista[1],:]
+# 					pd.options.mode.chained_assignment = None
+
+# 					articulo_modificar["CANTIDAD_COMPRA"] += 1
+
+# 					articulo_modificar["SUB_TOTAL"] = articulo_modificar["PRECIO_UNIT"] * articulo_modificar["CANTIDAD_COMPRA"]
+# 					articulo_modificar["UTILIDAD"] = int(articulo_modificar["UTILIDAD"]/(articulo_modificar["CANTIDAD_COMPRA"]-1)*articulo_modificar["CANTIDAD_COMPRA"])
+# 					listaCompra.loc[indice_lista[1], ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
+# 					print(listaCompra)
+# 				else:
+# 					messagebox.showwarning(title = "STOCK AGOTADO", message = f"No hay unidades de {articulo[1].upper()} disponibles.")
+					
+			
+# 			else:
+
+# 				articulo = pandas.concat([articulo, pandas.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"], name= articulo.name)])
+# 				articulo = articulo.reindex(["NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
+
+# 				articulo.index = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
+
+# 				articulo.at["CANTIDAD_COMPRA"]=1
+
+# 				df_articulo = articulo.to_frame().T
+# 				df_articulo.index = [articulo.name]
+# 				listaCompra = pandas.concat([listaCompra, df_articulo], axis= 0, ignore_index=False)
+
+# 				cantidadListaCompra.config(text=len(listaCompra))
+# 		else:
+
+# 			messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
+
+# 		codigo.delete(0, "end")
+# 		return listaCompra
+
+# 	def enviarCodigo():
+# 		global listaCompra
+
+# 		cursor.execute("SELECT CODIGO, NOMBRE, PRECIO, CANTIDAD, UTILIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (vlrCodigo.get().upper(), ))
+
+# 		articulo = cursor.fetchone()
+# 		conexion.commit()
+# 		articulo = pandas.Series(data = articulo[1:], name = articulo[0], index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "UTILIDAD"])
+# 		if not isinstance(articulo.loc["NOMBRE"],numpy.float64): 
+# 			ok = agregarArticulo(articulo, listaCompra) 
+# 			listaCompra = ok
+# 			print(listaCompra)
+# 		else:
+# 			messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
+			
+# 	raiz = tkinter.Tk()
+# 	raiz.geometry("300x300")
+
+# 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+# 	cursor = conexion.cursor()
+
+# 	vlrCodigo = tkinter.StringVar()
+
+# 	cantidadListaCompra = tkinter.Label(raiz)
+# 	cantidadListaCompra.pack()
+
+# 	listaCompra = pandas.DataFrame(columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
+
+
+# 	codigo = tkinter.Entry(raiz, width=19, textvariable = vlrCodigo)
+# 	codigo.pack()
+# 	btn = tkinter.Button(raiz, text = "enviar", command=enviarCodigo)
+# 	btn.pack()
+
+# 	raiz.mainloop()
+
+# anhadirArticulo()

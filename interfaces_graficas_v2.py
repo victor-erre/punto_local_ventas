@@ -146,7 +146,7 @@ class InterfazPrincipal:
 
 	def crearWidgets(self):
 		
-		self.listaCompra = pd.DataFrame(columns = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
+		self.listaCompra = pd.DataFrame(columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
 
 
 		# ++ CREACIÓN WIDGETS; INTERFAZ PRINCIPAL: 
@@ -840,85 +840,78 @@ class InterfazPrincipal:
 	@conexiones.decoradorBaseDatos
 	def anhadirArticulo(self, cursor, conexion, codigo):
 
-		def agregarArticulo(articulo):
+		# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
+		# FORMATO: <articulo pd.Series> = nombre -> CODIGO / data -> [ "NOMBRE" "PRECIO_UNIT" "CANTIDAD_STOCK" "UTILIDAD"]
 
-
-			# FORMATO: <articulo pd.Series> = ["CODIGO" "NOMBRE" "PRECIO_UNIT" "CANTIDAD_STOCK" "UTILIDAD"]
-			# verficamos que la cantidad en stock sea de almenos una para agregar al carro y verificamos que no esté ya en la lista.
-			# if articulo[3] > 0:
-			if articulo["CANTIDAD_STOCK"] > 0:
-
-				indice_lista = [False,0]
-
-				for i in range(len(self.listaCompra)):
-					# verificamos si el articulo i de la lista coincide con el articulo que vamos agregar, es decir, si ya está en la lista.
-					# if self.listaCompra[i][0] == articulo[0]:
-					if self.listaCompra.loc[i,"CODIGO"] == articulo["CODIGO"]:
-						indice_lista[0] = True
-						indice_lista[1] = i
-						break
-
-				# self.listaCompra = pd.Dataframe(columns = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
-
-				# si está en la lista, comprobamos que el stock tenga mas o sea igual a la cantidad para llevar.
-				if indice_lista[0]:
-
-					if articulo["CANTIDAD_STOCK"] >= (self.listaCompra.loc[indice_lista[1],"CANTIDAD_COMPRA"]+1):
-						
-						articulo_modificar = self.listaCompra.iloc[indice_lista[1],:]
-						pd.options.mode.chained_assignment = None
-
-						# agregamos uno mas al carrito:
-						articulo_modificar["CANTIDAD_COMPRA"] += 1
-
-						articulo_modificar["SUB_TOTAL"] = articulo_modificar["PRECIO_UNIT"] * articulo_modificar["CANTIDAD_COMPRA"]
-						articulo_modificar["UTILIDAD"] = int(articulo_modificar["UTILIDAD"]/(articulo_modificar["CANTIDAD_COMPRA"]-1)*articulo_modificar["CANTIDAD_COMPRA"])
-						self.listaCompra.loc[indice_lista[1], ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
-					else:
-						messagebox.showwarning(title = "STOCK AGOTADO", message = f"No hay unidades de {articulo[1].upper()} disponibles.")
-				
-				#si el articulo no está en el carrito de compra, borramos la cantidad de stock y le agregamos un articulo al carrito y el precio
-				else:
-
-					# agregamos el campo de subtotal que es equival al precio unitario:
-					articulo = pd.concat([articulo, pd.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"])])
-
-					# Organizamos el orden de los campos:
-					articulo = articulo.reindex(["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
-
-					# renombramos correctamente los campos:
-					articulo.index = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
-
-					# Cambiamos el valor de la cantidad en stock por uno; que es la unidad del articulo que se va a comprar:
-					articulo.at["CANTIDAD_COMPRA"]=1
-
-					# Agregamos el artículo nuevo en la lista:
-					self.listaCompra = pd.concat([self.listaCompra, articulo.to_frame().T], axis= 0, ignore_index=True)
-
-					self.cantidadListaCompra.config(text=len(self.listaCompra))
-
-
-			else:
-
-				messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
-
-
-		sql = "SELECT CODIGO, NOMBRE, PRECIO, CANTIDAD, UTILIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)"
-		argumento = (codigo.upper(), )
-
-		cursor.execute(sql, argumento)
+		cursor.execute("SELECT CODIGO, NOMBRE, PRECIO, CANTIDAD, UTILIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (codigo.upper(), ))
 
 		# Obtenemos el articulo que deseamos agregar
 		articulo = cursor.fetchone()
 
 		# FORMATO: <articulo pd.Series> = ["CODIGO" "NOMBRE" "PRECIO_UNIT" "CANTIDAD_STOCK" "UTILIDAD"]
-		articulo = pd.Series(articulo, index = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "UTILIDAD"])
+		articulo = pd.Series(data = articulo[1:], name = articulo[0], index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "UTILIDAD"])
 
-		# comprobamos que el artículo esté en la base datos:
-		agregarArticulo(articulo) if not isinstance(articulo.loc["NOMBRE"],numpy.float64) else messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
+		# si `articulo` == None (cuando no está el codigo en BBDD), el tipo de dato en campo  `NOMBRE` será `numpy.float64` debido a que es el tipo de datos
+		# que toman cuando los valores son None
+		
+		if isinstance(articulo.loc["NOMBRE"],numpy.float64): 
+
+			messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
+
+		else:
+
+
+			if articulo["CANTIDAD_STOCK"] > 0:
+
+				# COMPROBACIÓN: presencia en el carrito de compras.
+				if articulo.name in self.listaCompra.index.tolist():
+
+						if articulo["CANTIDAD_STOCK"] >= (self.listaCompra.at[articulo.name,"CANTIDAD_COMPRA"]+1):
+							
+							# copiar la información del articulo a modificar.
+							articulo_modificar = self.listaCompra.loc[articulo.name,:]
+
+							# linea para omitir la advertencia de pandas.Dataframe sobre la reasignacion de valores
+							pd.options.mode.chained_assignment = None
+
+							# Realizar las modificaciones pertinentes.
+							articulo_modificar.at["CANTIDAD_COMPRA"] += 1
+							articulo_modificar.at["SUB_TOTAL"] = articulo_modificar.at["PRECIO_UNIT"] * articulo_modificar.at["CANTIDAD_COMPRA"]
+							articulo_modificar.at["UTILIDAD"] = int(articulo_modificar.at["UTILIDAD"]/(articulo_modificar.at["CANTIDAD_COMPRA"]-1)*articulo_modificar.at["CANTIDAD_COMPRA"])
+
+							# actualizar la lista con el articulo modificado.
+							self.listaCompra.loc[articulo.name, [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
+						else:
+							messagebox.showwarning(title = "STOCK AGOTADO", message = "No hay unidades de {} disponibles.".format(articulo["NOMBRE"].upper()))
+
+				else:
+
+					# agregamos el campo de subtotal que es equival al precio unitario:
+					articulo = pd.concat([articulo, pd.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"], name= articulo.name)])
+
+					# Organizamos el orden de los campos:
+					articulo = articulo.reindex([ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
+
+					# renombramos correctamente los campos:
+					articulo.index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
+
+					# Cambiamos el valor de la cantidad en stock por uno; que es la unidad del articulo que se va a comprar:
+					articulo.at["CANTIDAD_COMPRA"]=1
+
+					# se crea un df para asignarle índice que corresponde al código del producto
+					df_articulo = articulo.to_frame().T
+					df_articulo.index = [articulo.name]
+
+					# Agregamos el artículo nuevo en la lista:
+					self.listaCompra = pd.concat([self.listaCompra, df_articulo], axis= 0, ignore_index=False)
+
+					self.cantidadListaCompra.config(text=len(self.listaCompra))
+					print(self.listaCompra)
+
+			else:
+
+				messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
 			
-		# self.entCodigo.delete(0, END)
-		# codigoArticulo.set("")
 
 	def modificarArticulo(self):
 
@@ -928,15 +921,19 @@ class InterfazPrincipal:
 		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
 
 		def seleccionArticulo(event, cod_sel):
-
-			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
-
+			# cuando no se puede sumar mas
 			if validacion[cod_sel][0] == validacion[cod_sel][1]: 
 				btnAumentar["state"]= "disabled" 
 			else:
 				btnAumentar["state"]= "normal"
 
-			# pass
+			# cuando no se puede restar más:
+			if validacion[cod_sel][1] == 0: 
+				btnDisminuir["state"]= "disabled" 
+			else:
+				btnDisminuir["state"]= "normal"
+
+
 		def salir(event):
 
 			print("chao")
@@ -952,63 +949,28 @@ class InterfazPrincipal:
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)		
 
-		# @conexiones.decoradorBaseDatos2
 		def modificarCantidad(tipo):
-			
-			cod_sel = treeVista.item(treeVista.selection())["values"][1]
-			if tipo == "MAS":
-				for indice, serie in self.listaCompra.iterrows():
-					if serie.loc["CODIGO"]==cod_sel:
-						print("aumentar cantidad")
-						print(indice)
-						print(serie)
-						# *aumentarle la cantidad al carrito
-						seleccionArticulo(None, cod_sel)
-						# pass
-				# self.listaCompra
-			if tipo == "MENOS":
-				for indice, serie in self.listaCompra.iterrows():
-					if serie.loc["CODIGO"]==cod_sel:
-						print("mermar cantidad")
-						print(indice)
-						print(serie)
-						
+			# * modificar la cantidad en el carrito y que se vea reflejado en la interfaz.
+
 			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
-			# cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (cod_sel,))
-
-			# cant_compra = 0
-			# for llave, valor in self.listaCompra.iterrows():
-			# 	if valor["CODIGO"] == cod_sel:
-			# 		cant_compra = valor["CANTIDAD_COMPRA"]
-			# 		break 	
-
-			# if cantidad["BBDD"] == cantidad["compra"]:
-
-		# 	if len(self.listaCompra)>0:
-
-		# 		# seleccion = 
-		# 		seleccion = {"codigo":treeVista.item(treeVista.selection())["values"][1], "q_comprar":treeVista.item(treeVista.selection())["values"][4]}
-		# 		cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (seleccion["codigo"],))
-		# 		seleccion["q_BBDD"] = cursor.fetchone()[0]
-		# 		# seleccion["q_BBDD"]=cant_BBDD
-		# 		print(seleccion)
-		# 		print("codigo:",seleccion["codigo"])
-		# 		print("cantidad comprar:",seleccion["q_comprar"])
-		# 		print("cantidad BBDD:",seleccion["q_BBDD"])
-
-		# 		if tipo == "MAS":
-				# 	if seleccion["q_comprar"] == seleccion["q_BBDD"]:
-				# 		pass
-
-				# else:	
-				# 	print("disminuir cantidad")
+			# if tipo == "MAS":
+			# 	for indice, serie in self.listaCompra.iterrows():
+			# 		if serie.loc["CODIGO"]==cod_sel:
+			# 			print("aumentar cantidad")
+			# 			print(indice)
+			# 			print(serie)
+			# 			seleccionArticulo(None, cod_sel)
+			# if tipo == "MENOS":
+			# 	for indice, serie in self.listaCompra.iterrows():
+			# 		if serie.loc["CODIGO"]==cod_sel:
+			# 			print("mermar cantidad")
+			# 			print(indice)
+			# 			print(serie)
+			pass
+						
 
 		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
 		cursor = conexion.cursor()
-
-		# tope_art = {}
-		# for i, j in self.listaCompra.iterrows():
-		# 	tope_art.update({j.loc["CODIGO"]:(j.loc["CANTIDAD"])})
 
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda _ : salir(_))
@@ -1046,7 +1008,6 @@ class InterfazPrincipal:
 		treeVista.column("CANTIDAD", width = 10, anchor = "center")
 		treeVista.column("TOTAL", width = 10, anchor = "center")
 
-		#treeVista.heading("#0")
 		treeVista.heading("ITEM", text = "ITEM")
 		treeVista.heading("CODIGO", text="CODIGO")
 		treeVista.heading("NOMBRE", text = "NOMBRE")
@@ -1058,11 +1019,11 @@ class InterfazPrincipal:
 
 		if len(self.listaCompra) != 0:
 
-			valorTotal = self.listaCompra.iloc[:,4].sum()
+			valorTotal = self.listaCompra.loc[:,"SUB_TOTAL"].sum()
 			contador = 1
 
-			for llave, valor in self.listaCompra.iterrows():
-				treeVista.insert("","end", iid = contador, values = (contador, valor.loc["CODIGO"], valor.loc["NOMBRE"],valor.loc["PRECIO_UNIT"], valor.loc["CANTIDAD_COMPRA"], valor.loc["SUB_TOTAL"]))
+			for indice in self.listaCompra.index.tolist():
+				treeVista.insert("","end", iid = contador, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
 				contador += 1
 
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
@@ -1070,18 +1031,26 @@ class InterfazPrincipal:
 			treeVista.selection_set(1)
 
 
-		codigos = self.listaCompra.iloc[:,0].tolist()
+		codigos = self.listaCompra.index.tolist()
 		cursor.execute("SELECT CODIGO, CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
+
+		# *eliminar el bloque sgte agregandole un campo en el carrito de la cantidad que hay en stock
 		inventario = {}
 		for i in cursor.fetchall():
 			inventario.update({i[0]:i[1]})
 		# FORMATO: validacion = {"codigo_articulo":[cantidad_inventario, cantidad_compra]}
 		validacion = {}
+		# for i in codigos:
+		# 	for j in inventario:
+		# 		if self.listaCompra.at[i, "CODIGO"] == i:
+		# 			validacion.update({j : [inventario[j], self.listaCompra.at[i,"CANTIDAD_COMPRA"]]})
+		# 		continue
 		for llave, valor in self.listaCompra.iterrows():
 			for i in inventario:
-				if valor.loc["CODIGO"] == i:
+				if llave == i:
 					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
 				continue
+
 		print(validacion)
 
 	def generarCodigoCliente(self,cursor):
