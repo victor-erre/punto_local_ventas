@@ -74,7 +74,6 @@ def crearTablas(*args, **kwargs):
 												PRECIO INTEGER NOT NULL,
 												COSTO INTEGER NOT NULL,
 												UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO - COSTO),
-												-- UTILIDAD INTEGER NOT NULL, 
 												COMENTARIO VARCHAR(50) DEFAULT "NULL",
 												PRIMARY KEY (CODIGO)
 												)""")
@@ -83,9 +82,7 @@ def crearTablas(*args, **kwargs):
 													CODIGO VARCHAR(5),
 													ARTICULO VARCHAR(20) NOT NULL,
 													MARCA VARCHAR(20) NOT NULL,
-													FECHA DATETIME GENERATED ALWAYS AS (DATETIME('now','localtime')) STORED,
-													-- FECHA DATETIME GENERATED ALWAYS AS (datetime()) STORED,
-													-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP),
+													FECHA DATETIME DEFAULT DATETIME('now','localtime'),
 													PRIMARY KEY (CODIGO)
 													)
 											
@@ -103,20 +100,14 @@ def crearTablas(*args, **kwargs):
 															COSTO_NUEVO INTEGER NOT NULL, 
 															UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO_NUEVO - COSTO_NUEVO) STORED, 
 															COMENTARIO VARCHAR(50) DEFAULT 'NULL', 
-															-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME())
-															FECHA DATETIME GENERATED ALWAYS AS (DATETIME('now','localtime')) STORED
-															-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP)
+															FECHA DATETIME DEFAULT DATETIME('now','localtime')
 															)
 					""")
 
 	cursor.execute("""CREATE TABLE ART_ELIMINACION (CODIGO VARCHAR(5),
 														ARTICULO VARCHAR(20) NOT NULL,
 														MARCA VARCHAR(20) NOT NULL,
-														-- PRECIO INTEGER NOT NULL,
-														-- COSTO INTEGER NOT NULL,
-														-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME()),
-														FECHA DATETIME GENERATED ALWAYS AS (DATETIME('now','localtime')) STORED,
-														-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP),
+														FECHA DATETIME DEFAULT DATETIME('now','localtime'),
 														PRIMARY KEY (CODIGO))
 														
 					""")
@@ -130,9 +121,7 @@ def crearTablas(*args, **kwargs):
 											PRECIO_TOT INTEGER NOT NULL, 
 											COSTO_TOT INTEGER NOT NULL,
 											UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO_TOT - COSTO_TOT),
-											-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP),
-											-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME()),
-											FECHA DATETIME GENERATED ALWAYS AS (DATETIME('now','localtime')) STORED,
+											FECHA DATETIME DEFAULT DATETIME('now','localtime'),
 											PRIMARY KEY (FACTURA)
 											)
 
@@ -147,7 +136,7 @@ def crearTablas(*args, **kwargs):
 											ABONO INTEGER NOT NULL DEFAULT 0,
 											COMENTARIO TEXT NOT NULL DEFAULT "NULL",
 											-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME())
-											FECHA DATETIME GENERATED ALWAYS AS (DATETIME('now', 'localtime')) STORED
+											FECHA DATETIME DEFAULT DATETIME('now', 'localtime')
 											-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP))
 
 		)
