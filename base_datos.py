@@ -91,7 +91,6 @@ def crearTablas(*args, **kwargs):
 	cursor.execute("""CREATE TABLE ART_ACTUALIZACION (
 															CODIGO VARCHAR(5) NOT NULL, 
 															ARTICULO VARCHAR(20) NOT NULL, 
-															-- MARCA VARCHAR(20) NOT NULL , 
 															STOCK_VIEJO INTEGER NOT NULL, 
 															STOCK_NUEVO INTEGER NOT NULL, 
 															PRECIO_VIEJO INTEGER NOT NULL,
@@ -111,22 +110,21 @@ def crearTablas(*args, **kwargs):
 														PRIMARY KEY (CODIGO))
 														
 					""")
-
 	cursor.execute("""CREATE TABLE VENTAS (
-											FACTURA INTEGER AUTO_INCREMENT,
+											FACTURA INTEGER PRIMARY KEY AUTOINCREMENT,
 											CODIGO VARCHAR(5) NOT NULL,
 											ARTICULO VARCHAR(20) NOT NULL,
 											CANTIDAD INTEGER NOT NULL,
-											-- PRECIO INTEGER NOT NULL, 
 											PRECIO_TOT INTEGER NOT NULL, 
 											COSTO_TOT INTEGER NOT NULL,
 											UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO_TOT - COSTO_TOT),
-											FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
-											PRIMARY KEY (FACTURA)
+											FECHA DATETIME DEFAULT (DATETIME('now','localtime'))
+	
 											)
 
 					""")
 
+	# *Estudiar el almacenamiento de CONCEPTO
 	cursor.execute("""CREATE TABLE SALDOS (
 											CLIENTE VARCHAR(3) NOT NULL,
 											NOMBRE VARCHAR(20) NOT NULL,
@@ -135,13 +133,11 @@ def crearTablas(*args, **kwargs):
 											SALDO INTEGER NOT NULL,
 											ABONO INTEGER NOT NULL DEFAULT 0,
 											COMENTARIO TEXT NOT NULL DEFAULT "NULL",
-											-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME())
-											FECHA DATETIME DEFAULT (DATETIME('now','localtime'))
-											-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP))
+											FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
+											PRIMARY KEY (FACTURA)
 
 		)
 		""")
-	# cursor.execute("INSERT INTO SALDOS (CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO) VALUES ('00','ADMIN', 0, 'SALDADO', 0)")
 	
 	cursor.execute("""
 					CREATE TRIGGER INVENTARIO_AI AFTER INSERT ON INVENTARIO FOR EACH ROW
@@ -191,9 +187,11 @@ def prueba(**kwargs):
 				("PA011", "COMPAS", "TREZOR","PAPELERIA" , 7, 8900, 6200, "METALICO")
 				]
 
+	cursor.execute("INSERT INTO SALDOS (CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO) VALUES ('00','ADMIN', 0, 'SALDADO', 0)")
+
 	cursor.executemany("INSERT INTO INVENTARIO VALUES(?,?,?,?,?,?,?,?)",productos)
 
-	cursor.execute("INSERT INTO INVENTARIO VALUES(?,?,?,?,?,?,?,?)", ("PA012", "CARPETA", "FOLIO", None, 12, 2000, 1300, None))
+	cursor.execute("INSERT INTO INVENTARIO(CODIGO, ARTICULO, MARCA, STOCK, PRECIO, COSTO) VALUES(?,?,?,?,?,?)", ("PA012", "CARPETA", "FOLIO",  12, 2000, 1300))
 	cursor.execute("INSERT INTO VENTAS (CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT) VALUES ('PA000', 'ARTICULO_0', 0, 0, 0)")
 
 	print("Pruebas EJECUTADAS con éxito")
@@ -210,10 +208,9 @@ def borrarBBDD(ruta):
 
 # ++++++++++++++++++++++++++++    INSTRUCCIÓN DE PRUEBA      +++++++++++++++++++++++++++++++++++++++++++
 
-borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_{}.db".format(datetime.date.today().strftime('%B').upper()))
-
-crearTablas()
-
-prueba()
-
+# borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_{}.db".format(datetime.date.today().strftime('%B').upper()))
 # borrarTablas()	
+
+# crearTablas()
+
+# prueba()
