@@ -82,7 +82,7 @@ def crearTablas(*args, **kwargs):
 													CODIGO VARCHAR(5),
 													ARTICULO VARCHAR(20) NOT NULL,
 													MARCA VARCHAR(20) NOT NULL,
-													FECHA DATETIME DEFAULT DATETIME('now','localtime'),
+													FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
 													PRIMARY KEY (CODIGO)
 													)
 											
@@ -100,14 +100,14 @@ def crearTablas(*args, **kwargs):
 															COSTO_NUEVO INTEGER NOT NULL, 
 															UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO_NUEVO - COSTO_NUEVO) STORED, 
 															COMENTARIO VARCHAR(50) DEFAULT 'NULL', 
-															FECHA DATETIME DEFAULT DATETIME('now','localtime')
+															FECHA DATETIME DEFAULT (DATETIME('now','localtime'))
 															)
 					""")
 
 	cursor.execute("""CREATE TABLE ART_ELIMINACION (CODIGO VARCHAR(5),
 														ARTICULO VARCHAR(20) NOT NULL,
 														MARCA VARCHAR(20) NOT NULL,
-														FECHA DATETIME DEFAULT DATETIME('now','localtime'),
+														FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
 														PRIMARY KEY (CODIGO))
 														
 					""")
@@ -121,7 +121,7 @@ def crearTablas(*args, **kwargs):
 											PRECIO_TOT INTEGER NOT NULL, 
 											COSTO_TOT INTEGER NOT NULL,
 											UTILIDAD INTEGER GENERATED ALWAYS AS (PRECIO_TOT - COSTO_TOT),
-											FECHA DATETIME DEFAULT DATETIME('now','localtime'),
+											FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
 											PRIMARY KEY (FACTURA)
 											)
 
@@ -136,7 +136,7 @@ def crearTablas(*args, **kwargs):
 											ABONO INTEGER NOT NULL DEFAULT 0,
 											COMENTARIO TEXT NOT NULL DEFAULT "NULL",
 											-- FECHA DATETIME GENERATED ALWAYS AS (DATETIME())
-											FECHA DATETIME DEFAULT DATETIME('now', 'localtime')
+											FECHA DATETIME DEFAULT (DATETIME('now','localtime'))
 											-- FECHA DATETIME GENERATED ALWAYS AS (CURRENT_TIMESTAMP))
 
 		)
@@ -193,7 +193,8 @@ def prueba(**kwargs):
 
 	cursor.executemany("INSERT INTO INVENTARIO VALUES(?,?,?,?,?,?,?,?)",productos)
 
-	# cursor.execute("INSERT INTO VENTAS (CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT) VALUES ('PA000', 'ARTICULO_0', 0, 0, 0)")
+	cursor.execute("INSERT INTO INVENTARIO VALUES(?,?,?,?,?,?,?,?)", ("PA012", "CARPETA", "FOLIO", None, 12, 2000, 1300, None))
+	cursor.execute("INSERT INTO VENTAS (CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT) VALUES ('PA000', 'ARTICULO_0', 0, 0, 0)")
 
 	print("Pruebas EJECUTADAS con éxito")
 
@@ -214,6 +215,5 @@ borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_
 crearTablas()
 
 prueba()
-
 
 # borrarTablas()	
