@@ -17,6 +17,8 @@ import numpy
 # from functools import partial
 
 # esta es una prueba inicial
+# ***al eliminar un articulo no puede eliminarse sin antes liquidar el stock, entonces preguntar si desea liquidar, si es afirmativa la respuesta
+# ...entonces realizar la compra del artículo por el valor actual y ahora si liquidar.
 
 class Conversiones:
 
@@ -922,6 +924,7 @@ class InterfazPrincipal:
 
 		def seleccionArticulo(event, cod_sel):
 			# cuando no se puede sumar mas
+			print(cod_sel)
 			if validacion[cod_sel][0] == validacion[cod_sel][1]: 
 				btnAumentar["state"]= "disabled" 
 			else:
@@ -932,7 +935,6 @@ class InterfazPrincipal:
 				btnDisminuir["state"]= "disabled" 
 			else:
 				btnDisminuir["state"]= "normal"
-
 
 		def salir(event):
 
@@ -949,24 +951,24 @@ class InterfazPrincipal:
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)		
 
-		def modificarCantidad(tipo):
+		def modificarCantidad(tipo, codigo):
 			# * modificar la cantidad en el carrito y que se vea reflejado en la interfaz.
+			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
+		
 
-			# cod_sel = treeVista.item(treeVista.selection())["values"][1]
-			# if tipo == "MAS":
-			# 	for indice, serie in self.listaCompra.iterrows():
-			# 		if serie.loc["CODIGO"]==cod_sel:
-			# 			print("aumentar cantidad")
-			# 			print(indice)
-			# 			print(serie)
-			# 			seleccionArticulo(None, cod_sel)
-			# if tipo == "MENOS":
-			# 	for indice, serie in self.listaCompra.iterrows():
-			# 		if serie.loc["CODIGO"]==cod_sel:
-			# 			print("mermar cantidad")
-			# 			print(indice)
-			# 			print(serie)
-			pass
+			if tipo == "MAS":
+				print(self.listaCompra)
+				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] += 1
+				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] + self.listaCompra.at[codigo, "PRECIO_UNIT"]
+				print(self.listaCompra)
+				seleccionArticulo(None, codigo)
+
+			if tipo == "MENOS":
+				print(self.listaCompra)
+				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] -= 1
+				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] + self.listaCompra.at[codigo, "PRECIO_UNIT"]
+				print(self.listaCompra)
+				seleccionArticulo(None, codigo)
 						
 
 		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
@@ -982,14 +984,14 @@ class InterfazPrincipal:
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
 		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.86)
 
-		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event, treeVista.item(treeVista.selection())["values"][1] ))
+		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event, treeVista.selection()[0]))
 
 		Label(interfazArticulos, text = "CANTIDAD", width = 15).place(relx=0.88, rely=0.02)
 
-		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS"))
+		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS", treeVista.selection()[0]))
 		btnAumentar.place(relx=0.92, rely=0.08)
 
-		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS"))
+		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS", treeVista.selection()[0]))
 		btnDisminuir.place(relx=0.92, rely=0.12)
 
 		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR", width = 12, command = reiniciarLista)
@@ -1023,12 +1025,12 @@ class InterfazPrincipal:
 			contador = 1
 
 			for indice in self.listaCompra.index.tolist():
-				treeVista.insert("","end", iid = contador, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
+				treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
 				contador += 1
 
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
 
-			treeVista.selection_set(1)
+			treeVista.selection_set(treeVista.get_children()[0])
 
 
 		codigos = self.listaCompra.index.tolist()
@@ -1051,7 +1053,7 @@ class InterfazPrincipal:
 					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
 				continue
 
-		print(validacion)
+		# print(validacion)
 
 	def generarCodigoCliente(self,cursor):
 

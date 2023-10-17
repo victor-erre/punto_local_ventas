@@ -6,29 +6,45 @@ import sqlite3
 # import time
 import datetime
 import numpy
-
+import calendar
+import locale
 
 def conexionProyecto():
-	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+	# conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
+	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/base_datos_p1.db")
 	cursor = conexion.cursor()
-	# cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
-	# cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
-	cursor.execute("SELECT * FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", ("PA078", ))
-	try:
-		# saldos = cursor.fetchall()
-		saldos = cursor.fetchone()
-		print(saldos)
-		print(type(saldos))
-		# print(sum([i[0] for i in saldos]))
-	except ValueError as e:
-		print(e)
-	except AttributeError as ae:
-		print(ae)
+	cursor.execute("DROP TABLE IF EXISTS PRUEBA")
+	# cursor.execute("""CREATE TABLE PRUEBA (
+	# 			PRUEBA1 VARCHAR(12) NOT NULL,
+	# 			PRUEBA2 VARCHAR(20) DEFAULT "PRUEBA DOS",
+	# 			PRUEBA3 INTEGER NOT NULL,
+	# 			PRUEBA4 INTEGER NOT NULL,
+	# 			PRUEBA5 INTEGER GENERATE ALWAYS (PRUEBA3 - PRUEBA4),
+	# 			PRIMARY KEY (PRUEBA1)
+	# 	)""")
+	# cursor.execute("INSERT INTO PRUEBA(PRUEBA1, PRUEBA3, PRUEBA4) VALUES (?)", ('ENSAYO 1', 4000, 3500))
 	conexion.commit()
 	cursor.close()
 	conexion.close()
+	# cursor.execute("DELETE FROM SALDOS WHERE COD_FACTURA = (?)", (18,))
+	# cursor.execute("INSERT INTO SALDOS VALUES (?,?,?,?,?,?)",(int("08"), "CLIENTE OCHO", 18, "SALDADO", 0, str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+	# cursor.execute("SELECT * FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", ("PA078", ))
+	# try:
+	# 	# saldos = cursor.fetchall()
+	# 	saldos = cursor.fetchone()
+	# 	print(saldos)
+	# 	print(type(saldos))
+	# 	# print(sum([i[0] for i in saldos]))
+	# except ValueError as e:
+	# 	print(e)
+	# except AttributeError as ae:
+	# 	print(ae)
+	# conexion.commit()
+	# cursor.close()
+	# conexion.close()
 
 # conexionProyecto()
+
 
 def tkinterTreeview():
 
@@ -79,10 +95,59 @@ def tkinterTreeview():
 	tkinter.Button(raiz, width = 12, text= "VER ELEMENTOS", command=imprimirElementos).pack()
 	tkinter.Button(raiz, width = 12, text= "REINICIAR TREEVIEW", command=borrarElementos).pack()
 
-
-
-
 	raiz.mainloop()
+# tkinterTreeview()
+# import tkinter as tk
+# from tkinter import ttk
+
+# def identificar_elemento(event):
+#     item_id = tree.identify("item", event.x, event.y)
+#     column_id = tree.identify("column", event.x, event.y)
+#     heading_id = tree.identify("heading", event.x, event.y)
+
+#     print(f"Identificado Item: {item_id}")
+#     print(f"Identificado Columna: {column_id}")
+    # print(f"Identificado Encabezado: {heading_id}")
+
+# root = tk.Tk()
+# root.geometry("400x300")
+
+# tree = ttk.Treeview(root, columns=("Columna1", "Columna2"))
+# tree.heading("#1", text="Encabezado 1")
+# tree.heading("#2", text="Encabezado 2")
+
+# tree.insert("", "end", text="Item 1", values=("Valor 1.1", "Valor 1.2"))
+# tree.insert("", "end", text="Item 2", values=("Valor 2.1", "Valor 2.2"))
+
+# tree.pack()
+
+# # Configura un evento para identificar elementos cuando haces clic derecho en el Treeview.
+# tree.bind("<<TreeviewSelect>>", identificar_elemento)
+
+# root.mainloop()
+
+
+import tkinter as tk
+import pandas as pd
+from tkinter import ttk
+
+def actualizar_celda(event):
+    # Obtener la fila y la columna de la celda editada
+    fila, columna = treeview.index(treeview.focus()), treeview.identify_column(event.x)
+
+    # Verificar que la celda editada sea válida
+    if fila and columna:
+        # Actualizar el valor en el DataFrame
+        nuevo_valor = treeview.item(fila)["values"][columna]
+        df.loc[fila, columna] = nuevo_valor
+
+def actualizar_interfaz():
+    # Actualizar el Treeview para que refleje los cambios en el DataFrame
+    treeview.delete(*treeview.get_children())
+    for indice, fila in df.iterrows():
+        treeview.insert("", "end", values=fila.tolist())
+
+
 
 def funcionLambda():
 
@@ -103,7 +168,7 @@ def pruebaDataFrame():
 	df1 = pandas.concat([df1, df2])
 	for i in df1:
 		print(i)
-pruebaDataFrame()
+# pruebaDataFrame()
 
 def pruebaSeries():
 
@@ -302,3 +367,18 @@ def funcionPrueba( var1, var2, *args, **kwargs):
 # 	raiz.mainloop()
 
 # anhadirArticulo()
+
+def extractoBancolombia():
+
+	vble = """34.00
+	"""
+
+	suma = float()
+	for i in vble.split("\n"):
+		if len(i)>0 and i[0]=="-":
+			continue
+		else:
+			# print(i.replace(".00", "").replace(",", ""))
+			# tipo = i.replace(".00", "").replace(",", "")
+			# print(tipo, "--->>",type(tipo))
+			suma+=float(i.replace(".00", "").replace(",", ""))
