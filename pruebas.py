@@ -166,9 +166,10 @@ def pruebaDataFrame():
 	df2 = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
 
 	df1 = pandas.concat([df1, df2])
-	for i in df1:
-		print(i)
-# pruebaDataFrame()
+	for llave, valor in df1.iterrows():
+		print(llave)
+		print(valor.loc["edad"])
+pruebaDataFrame()
 
 def pruebaSeries():
 
@@ -382,3 +383,4 @@ def extractoBancolombia():
 			# tipo = i.replace(".00", "").replace(",", "")
 			# print(tipo, "--->>",type(tipo))
 			suma+=float(i.replace(".00", "").replace(",", ""))
+

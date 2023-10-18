@@ -111,7 +111,7 @@ def crearTablas(*args, **kwargs):
 														
 					""")
 	cursor.execute("""CREATE TABLE VENTAS (
-											FACTURA INTEGER PRIMARY KEY AUTOINCREMENT,
+											FACTURA INTEGER,
 											CODIGO VARCHAR(5) NOT NULL,
 											ARTICULO VARCHAR(20) NOT NULL,
 											CANTIDAD INTEGER NOT NULL,
@@ -133,9 +133,8 @@ def crearTablas(*args, **kwargs):
 											SALDO INTEGER NOT NULL,
 											ABONO INTEGER NOT NULL DEFAULT 0,
 											COMENTARIO TEXT NOT NULL DEFAULT "NULL",
-											FECHA DATETIME DEFAULT (DATETIME('now','localtime')),
-											PRIMARY KEY (FACTURA)
-
+											FECHA DATETIME DEFAULT (DATETIME('now','localtime'))
+											-- PRIMARY KEY (FACTURA)
 		)
 		""")
 	

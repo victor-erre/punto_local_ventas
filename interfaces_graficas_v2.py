@@ -1,5 +1,5 @@
-from tkinter import Frame,BROWSE,NONE, BOTH,X, Y, Listbox, Label, LabelFrame, Checkbutton, Scrollbar, Tk, Text, StringVar,Message, BooleanVar, Entry, Button, ttk, messagebox,TOP, OptionMenu, Toplevel, IntVar, NORMAL, RIGHT, LEFT, END, NO, CENTER, YES, HORIZONTAL, VERTICAL, simpledialog
-
+from tkinter import Frame,BROWSE,NONE, BOTH,X, Y, Listbox, Label, LabelFrame, Checkbutton, Scrollbar, Tk, Text, StringVar,Message, BooleanVar, Entry, Button, messagebox,TOP, OptionMenu, Toplevel, IntVar, NORMAL, RIGHT, LEFT, END, NO, CENTER, YES, HORIZONTAL, VERTICAL, simpledialog
+from tkinter import ttk
 # POTTER: REGISTRADORA CASIO PCR - T285
 import conexiones
 #import pandas
@@ -14,6 +14,10 @@ import sqlite3
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy
+import locale
+	
+# Asignamos la hora del sistema en hora local
+locale.setlocale(locale.LC_TIME, 'es_ES.utf8')
 # from functools import partial
 
 # esta es una prueba inicial
@@ -184,9 +188,12 @@ class InterfazPrincipal:
 		if self.menuOperacion.get()=="COMPRA":
 
 			# si el check de ´incluir a saldos´ está activo, se agrega el nombre de la persona que va deber
-			@conexiones.decoradorBaseDatos
-			def check(tipo, cursor, conexion):
-				
+			@conexiones.decoradorBaseDatos3
+			def check(*args, **kwargs):
+
+				cursor = kwargs["cursor"]
+				conexion = kwargs["conexion"]
+				tipo = args[0]
 				if tipo == "SALDO":
 
 					# si selecciona la opcion incluir a saldo, activa casillo cliente nuevo y el entry Uno de codigo cliente
@@ -374,19 +381,25 @@ class InterfazPrincipal:
 		elif self.menuOperacion.get() == "SALDOS":
 			self.interfazSaldos()
 
-	@conexiones.decoradorBaseDatos
-	def generarCodigoCliente(self, cursor, conexion):
-
-		cursor.execute("SELECT COD_CLIENTE FROM SALDOS")
+	@conexiones.decoradorBaseDatos3
+	def generarCodigoCliente(*args, **kwargs):
+		"""
+		CÁLCULA: el código siguiente (cliente nuevo), para que no haya conflicto de clientes
+		"""
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
+		cursor.execute("SELECT CLIENTE FROM SALDOS")
 		return str(len(set([x[0] for x in cursor.fetchall()]))).zfill(2)
 
-	def rescatarSaldos(self, cursor):
+	def rescatarSaldos(*args):
 
 		'''
 		RETORNA data frame con los clientes que deben. 
 		'''
+		self = args[0]
+		cursor = args[1]
 
-		cursor.execute("SELECT COD_CLIENTE, NOMBRE_CLIENTE, CONCEPTO, SALDO, ABONO, COMENTARIO FROM SALDOS")
+		cursor.execute("SELECT CLIENTE, NOMBRE, CONCEPTO, SALDO, ABONO, COMENTARIO FROM SALDOS")
 		saldos = cursor.fetchall()
 
 		# Obtengo los códigos únicos, para listarlos y ordenarlos. 
@@ -437,8 +450,8 @@ class InterfazPrincipal:
 
 		return df_saldos
 
-	@conexiones.decoradorBaseDatos
-	def interfazSaldos(self, cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def interfazSaldos(*args, **kwargs):
 
 		# *FUTURO: Cambiar los íconos internos de las ventanas de dialogo (se decd documents be crear una clase propio heredando de <Toplevel>)
 		
@@ -455,8 +468,8 @@ class InterfazPrincipal:
 			entAbonoCliente.delete(0, "end")
 			entAgregarSaldo.delete(0, "end")
 
-		@conexiones.decoradorBaseDatos
-		def actualizarDetalle(event, cursor, conexion):
+		@conexiones.decoradorBaseDatos3
+		def actualizarDetalle(*args, **kwargs):
 
 			'''
 			ACTUALIZACIÓN: de toda la interfaz, luego de abonar, saldar || agregar a la cuenta
@@ -466,6 +479,8 @@ class InterfazPrincipal:
 			<list valor_concepto> = [(CANTIDAD "NOMBRE_ARTICULO" PRECIO_TOTAL), ...]
 			<list valor_comentario> = ("PRIMERA LINEA", "SEGUNDA LINEA", ...)
 			'''
+			cursor = kwargs["cursor"]
+			conexion = kwargs["conexion"]
 
 			# BORRAMOS ENTRADAS 
 			borrarEntradas()
@@ -516,33 +531,33 @@ class InterfazPrincipal:
 			comentario.activate(2)
 
 
-		@conexiones.decoradorBaseDatos
-		def abonarSaldo(tipo, cursor, conexion): 
+		@conexiones.decoradorBaseDatos3
+		def abonarSaldo(*args, **kwargs): 
 
 			'''
 			<str tipo> = "SALDAR" || "ABONAR"
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			'''
-
-			# conexion = kwargs["conexion"]
+			conexion = kwargs["conexion"]
+			cursor = kwargs["cursor"]
 			valor_seleccion = tree.item(tree.selection())["values"]
 
-			if tipo == "SALDAR":
+			if args[0] == "SALDAR":
 
 				# CAPTURA: código última factura (para asignarle al estado "SALDADO")
-				cursor.execute("SELECT COD_FACTURA FROM SALDOS WHERE COD_CLIENTE = (?) ORDER BY COD_FACTURA DESC",(str(valor_seleccion[0]).zfill(2),))
+				cursor.execute("SELECT FACTURA FROM SALDOS WHERE CLIENTE = (?) ORDER BY FACTURA DESC",(str(valor_seleccion[0]).zfill(2),))
 				codigo_fact = cursor.fetchone()
 
 				# BORRADO Y ACTUALIZACIÓN: en BBDD.
-				cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (str(valor_seleccion[0]).zfill(2),))
-				cursor.execute("INSERT INTO SALDOS(COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0, "NULL") )
+				cursor.execute("DELETE FROM SALDOS WHERE CLIENTE = (?)", (str(valor_seleccion[0]).zfill(2),))
+				cursor.execute("INSERT INTO SALDOS(CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(str(valor_seleccion[0]).zfill(2), valor_seleccion[1], codigo_fact[0], "SALDADO", 0, "NULL") )
 
 				messagebox.showinfo("PAGO EXITOSO", "Se saldó la cuenta con {} exitosamente".format(valor_seleccion[1]), parent=interfaz)
 
 				conexion.commit()
 				actualizarDetalle(None)
 
-			elif tipo == "ABONAR":
+			elif args[0] == "ABONAR":
 
 				try:
 
@@ -557,7 +572,7 @@ class InterfazPrincipal:
 						codigo_cliente = str(valor_seleccion[0]).zfill(2)
 
 						# OBTENCIÓN: del saldo de cada factura más sus códigos y el abono (que en todas debe ser el mismo)
-						cursor.execute("SELECT SALDO, COD_FACTURA, ABONO FROM SALDOS WHERE COD_CLIENTE = (?)",(codigo_cliente,))
+						cursor.execute("SELECT SALDO, FACTURA, ABONO FROM SALDOS WHERE CLIENTE = (?)",(codigo_cliente,))
 						info_bd = cursor.fetchall()
 
 						# DEFINICIÓN VARIABLES:
@@ -576,7 +591,7 @@ class InterfazPrincipal:
 							else:
 
 								# ACTUALIZACIÓN: valores cliente seleccionado; tanto en BBDD como en la Interfaz.
-								cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE COD_CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
+								cursor.execute("UPDATE SALDOS SET ABONO =(?) WHERE CLIENTE = (?)", (abono_bd+valor_abonar, codigo_cliente))
 						else:
 
 							raise ValueError("No se puede abonar más del saldo pendiente.\nSaldo pendiente: {}".format(self.conversiones.puntoMilConSimbolo(saldo_total-abono_bd)))
@@ -599,13 +614,14 @@ class InterfazPrincipal:
 				conexion.commit()
 				actualizarDetalle(None)
 
-		@conexiones.decoradorBaseDatos
-		def agregarSaldo(vacio, cursor, conexion):
+		@conexiones.decoradorBaseDatos3
+		def agregarSaldo(*args, **kwargs):
 			'''
 			<list valor_seleccion> = ['COD_CLIENTE', 'NOMBRE_CLIENTE', 'CONCEPTO', SALDO, ABONO, "COMENTARIO"]
 			<int valor> --> valor a añadir
 			'''
-			# conexion = kwargs["conexion"]
+			cursor = kwargs["cursor"]
+			conexion = kwargs["conexion"]
 			valor_seleccion = tree.item(tree.selection())["values"]
 
 			try:
@@ -618,15 +634,15 @@ class InterfazPrincipal:
 					cod_seleccion = str(valor_seleccion[0]).zfill(2)
 
 					# CAPTURAMOS el último código de factura y lo modificamos para que sea el cod_factura siguiente.
-					cursor.execute("SELECT COD_FACTURA FROM SALDOS ORDER BY COD_FACTURA DESC")
+					cursor.execute("SELECT FACTURA FROM SALDOS ORDER BY FACTURA DESC")
 					cod_fact_sgte = cursor.fetchone()[0]+1
 
-					cursor.execute("SELECT CONCEPTO FROM SALDOS WHERE COD_CLIENTE = (?)", (cod_seleccion,))
+					cursor.execute("SELECT CONCEPTO FROM SALDOS WHERE CLIENTE = (?)", (cod_seleccion,))
 					concepto_seleccion = cursor.fetchone()[0]
 
 					# EVITAMOS: remontada, cuando el cliente actualmente NO debe nada (que es cuando el concepto es saldado)
 					if concepto_seleccion == "SALDADO":
-						cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE =(?)", (cod_seleccion,))
+						cursor.execute("DELETE FROM SALDOS WHERE CLIENTE =(?)", (cod_seleccion,))
 
 					ventana_nueva = simpledialog.askstring(title="COMENTRIO SALDO NUEVO", prompt="Ingresa el comentario que acompañará el saldo nuevo:", parent=interfaz, initialvalue="")		
 
@@ -635,12 +651,12 @@ class InterfazPrincipal:
 					else:
 						comentario_nuevo = "{} {} {}\n".format(datetime.date.today().strftime('%d/%m:'),ventana_nueva,self.conversiones.puntoMilConSimbolo(valor)).upper()
 
-					cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)", (cod_seleccion, valor_seleccion[1], cod_fact_sgte, "0 SALDO_NUEVO {}".format(valor), valor, valor_seleccion[4], comentario_nuevo ))
+					cursor.execute("INSERT INTO SALDOS (CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)", (cod_seleccion, valor_seleccion[1], cod_fact_sgte, "0 SALDO_NUEVO {}".format(valor), valor, valor_seleccion[4], comentario_nuevo ))
 					messagebox.showinfo(title="OPERACIÓN EXITOSA", message= "Saldo nuevo agregado con éxito.", parent=interfaz)
 
 					# ACTUALIZACION: de interfaz
 					conexion.commit()
-					actualizarDetalle(None)
+					actualizarDetalle()
 
 			except ValueError as e:
 				messagebox.showwarning(title="ERROR", message= "{}".format(e), parent=interfaz)
@@ -652,8 +668,12 @@ class InterfazPrincipal:
 			comentario["activestyle"]="none"
 			comentario.select_clear(0, END)
 
-		# <pandas.DataFrame datos> = columns:["CODIGO", "NOMBRE", "CONCEPTO", SALDO, ABONO, "COMENTARIO"]
+		# Declaramos self para tratar posteriormente y cursor y conexion para trabajar con la BBDD
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
+		# <pandas.DataFrame datos> = columns:["CODIGO", "NOMBRE", "CONCEPTO", SALDO, ABONO, "COMENTARIO"]
 		# CREACION ventana para mostrar los morosos y su información respectiva
 		interfaz = Toplevel(self.raiz)
 		interfaz.geometry("900x600+50+50")
@@ -725,7 +745,7 @@ class InterfazPrincipal:
 		entAgregarSaldo.place(relx=0.32, rely=0.78)
 
 		# *Cuando se presione salga una ventana emergente (previa validacion de cantidad a agregar) que pregunte si va agregar algún comentario
-		btnAgregarSaldo = Button(info_saldos, text="AGREGAR SALDO", width=14, command = lambda: agregarSaldo(None))
+		btnAgregarSaldo = Button(info_saldos, text="AGREGAR SALDO", width=14, command = agregarSaldo)
 		btnAgregarSaldo.place(relx=0.68, rely=0.78)
 
 		entAbonoCliente = Entry(info_saldos, width=15, textvariable = valorAbono , validate = "key", validatecommand= (info_saldos.register(self.validaciones.soloNumeros),"%P"))
@@ -771,7 +791,7 @@ class InterfazPrincipal:
 
 		# ACTUALIZACIÓN PANEL DERECHO:
 		# Pasamos como argumento `None` ya que la funcion nos pide un parámetro posicional (sería self dentro del módulo: `conexiones.py`)
-		actualizarDetalle(None)
+		actualizarDetalle()
 
 
 	def ejecutar(self, **kwargs):
@@ -839,13 +859,19 @@ class InterfazPrincipal:
 
 				messagebox.showwarning(title="ERROR", message="No es posible realizar la recarga, verifica que todo esté en orden.")
 
-	@conexiones.decoradorBaseDatos
-	def anhadirArticulo(self, cursor, conexion, codigo):
+	@conexiones.decoradorBaseDatos3
+	# def anhadirArticulo(self, cursor, conexion, codigo):
+	def anhadirArticulo(*args, **kwargs):
 
 		# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
 		# FORMATO: <articulo pd.Series> = nombre -> CODIGO / data -> [ "NOMBRE" "PRECIO_UNIT" "CANTIDAD_STOCK" "UTILIDAD"]
 
-		cursor.execute("SELECT CODIGO, NOMBRE, PRECIO, CANTIDAD, UTILIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (codigo.upper(), ))
+		self = args[0]
+		codigo = args[1]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
+
+		cursor.execute("SELECT CODIGO, ARTICULO, PRECIO, STOCK, UTILIDAD FROM INVENTARIO WHERE CODIGO = (?)", (codigo.upper(), ))
 
 		# Obtenemos el articulo que deseamos agregar
 		articulo = cursor.fetchone()
@@ -914,27 +940,28 @@ class InterfazPrincipal:
 
 				messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
 			
-
-	def modificarArticulo(self):
+	@conexiones.decoradorBaseDatos3
+	def modificarArticulo(*args, **kwargs):
 
 		# *al presionar el articulo en cuestion habilite los botones para eliminar o aumentar, de acuerdo a la cantidad en inventario y la cantidad en la lista.
 		# ...cuando la cantidad en el carro sea igual que en inventario, se deshabilite el botón aumentar, y saldo un Label que indique que no se puede durante 2 seg.
 		#* la modificacion se vea reflejada en simultáneo.
 		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
+		# *Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
 
-		def seleccionArticulo(event, cod_sel):
+		def seleccionArticulo(*args, **kwargs):
 			# cuando no se puede sumar mas
-			print(cod_sel)
-			if validacion[cod_sel][0] == validacion[cod_sel][1]: 
-				btnAumentar["state"]= "disabled" 
-			else:
-				btnAumentar["state"]= "normal"
+			codigo = treeVista.selection()[0]
 
-			# cuando no se puede restar más:
-			if validacion[cod_sel][1] == 0: 
-				btnDisminuir["state"]= "disabled" 
+			if validacion[codigo][0] == validacion[codigo][1]:
+				btnAumentar["state"]= "disabled"
+
+				# tooltip = ttk.Label(btnAumentar, text="Ya no hay stock", background="#ffffe0", relief="solid")
+				# tooltip.place(in_=btnAumentar, relx=0.5, rely=1.2, anchor="n")
+				# btnAumentar.tooltip = tooltip
+
 			else:
-				btnDisminuir["state"]= "normal"
+				btnAumentar["state"] = "normal"
 
 		def salir(event):
 
@@ -951,28 +978,43 @@ class InterfazPrincipal:
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)		
 
-		def modificarCantidad(tipo, codigo):
+		def modificarCantidad(tipo):
 			# * modificar la cantidad en el carrito y que se vea reflejado en la interfaz.
 			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
-		
+			
+			codigo = treeVista.selection()[0]
 
 			if tipo == "MAS":
-				print(self.listaCompra)
+				# if validacion[codigo][0] > self.listaCompra.at[codigo, "CANTIDAD_COMPRA"]:
 				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] += 1
-				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] + self.listaCompra.at[codigo, "PRECIO_UNIT"]
-				print(self.listaCompra)
-				seleccionArticulo(None, codigo)
+				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
 
-			if tipo == "MENOS":
-				print(self.listaCompra)
-				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] -= 1
-				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] + self.listaCompra.at[codigo, "PRECIO_UNIT"]
-				print(self.listaCompra)
-				seleccionArticulo(None, codigo)
-						
+			else:
+				if validacion[codigo][1]==1:
 
-		conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
-		cursor = conexion.cursor()
+					pregunta = messagebox.askquestion(title="CONFIRMACIÓN", message = "Deseas eliminar éste artículo del carrito?")
+					if pregunta =="yes":
+						self.listaCompra = self.listaCompra.drop(codigo)
+						# *actualizar la vista sin el artículo eliminado
+						return
+				else:
+					self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] -= 1
+					self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
+
+			validacion[codigo][1] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"]
+			print(validacion)
+			seleccionArticulo(None)
+									
+		# def show_tooltip(widget):
+		# 	tooltip = ttk.Label(widget, text="Ya no hay stock", background="#ffffe0", relief="solid")
+		# 	tooltip.place(in_=widget, relx=0.5, rely=1.2, anchor="n")
+		# 	widget.tooltip = tooltip
+
+		self = args[0]
+		conexion = kwargs["conexion"]
+		cursor = kwargs["cursor"]
+		# conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
+		# cursor = conexion.cursor()
 
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda _ : salir(_))
@@ -984,14 +1026,17 @@ class InterfazPrincipal:
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
 		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.86)
 
-		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event, treeVista.selection()[0]))
+		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event))
 
 		Label(interfazArticulos, text = "CANTIDAD", width = 15).place(relx=0.88, rely=0.02)
 
-		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS", treeVista.selection()[0]))
+		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
 
-		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS", treeVista.selection()[0]))
+		# btnAumentar.bind("<Enter>", lambda event: show_tooltip(btnAumentar))
+		# btnAumentar.bind("<Leave>", lambda event: btnAumentar.tooltip.destroy())
+
+		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS"))
 		btnDisminuir.place(relx=0.92, rely=0.12)
 
 		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR", width = 12, command = reiniciarLista)
@@ -1034,7 +1079,7 @@ class InterfazPrincipal:
 
 
 		codigos = self.listaCompra.index.tolist()
-		cursor.execute("SELECT CODIGO, CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
+		cursor.execute("SELECT CODIGO, STOCK FROM INVENTARIO WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
 
 		# *eliminar el bloque sgte agregandole un campo en el carrito de la cantidad que hay en stock
 		inventario = {}
@@ -1052,18 +1097,26 @@ class InterfazPrincipal:
 				if llave == i:
 					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
 				continue
+		print(inventario)
 
 		# print(validacion)
 
-	def generarCodigoCliente(self,cursor):
+	# def generarCodigoCliente(self,cursor):
+	def generarCodigoCliente(*args, **kwargs):
 
-		cursor.execute("SELECT COD_CLIENTE FROM SALDOS")
+		self = args[0]
+		cursor = args[1]
+		# conexion = args[2]
+		cursor.execute("SELECT CLIENTE FROM SALDOS")
+		# conexion.commit()
 		return str(len(set([x[0] for x in cursor.fetchall()]))).zfill(2)
 
+	@conexiones.decoradorBaseDatos3
+	def compra(*args, **kwargs):
 
-	@conexiones.decoradorBaseDatos
-	def compra(self, cursor, conexion):
-
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 		# *Incluir boton para descuentos a la venta general
 
 		# if self.menuOperacion.current()==0 or self.menuOperacion.current() ==1:
@@ -1081,7 +1134,7 @@ class InterfazPrincipal:
 
 			# guardar la compra en BBDD con un id unico y la lista de los productos y posterior eliminar dicha lista
 
-			cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA")
+			cursor.execute("SELECT FACTURA FROM VENTAS")
 
 			lista_cod = set(cursor.fetchall())
 
@@ -1098,7 +1151,7 @@ class InterfazPrincipal:
 				# si es cliente viejo y el código es de dos dígitos. verificamos.
 				if self.boolClienteNuevo.get() == False and len(self.entCodigoCliente.get())==2:
 
-					cursor.execute("SELECT NOMBRE_CLIENTE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
+					cursor.execute("SELECT NOMBRE FROM SALDOS WHERE CLIENTE = (?)", (self.entCodigoCliente.get(),))
 
 					# si está mas de una vez en la lista no me interesa
 					nombre_saldo = cursor.fetchone()
@@ -1106,15 +1159,15 @@ class InterfazPrincipal:
 					if nombre_saldo:
 
 						# obtenemos el valor de la ultima factura, para saber cual codigo sigue
-						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC" )
+						cursor.execute("SELECT FACTURA FROM VENTAS ORDER BY FACTURA DESC" )
 						codigo_sgte = cursor.fetchone()[0]+1
 
 						# si hay registro como saldado lo borramos, pero antes obtenemos el abono a la cuenta (debe ser el mismo en todos los registros)
-						cursor.execute("SELECT CONCEPTO, ABONO FROM SALDOS WHERE COD_CLIENTE=(?) ORDER BY COD_FACTURA DESC",(self.entCodigoCliente.get(),))
+						cursor.execute("SELECT CONCEPTO, ABONO FROM SALDOS WHERE CLIENTE=(?) ORDER BY FACTURA DESC",(self.entCodigoCliente.get(),))
 						concepto_abono=cursor.fetchone()
 
 						if concepto_abono[0]=="SALDADO":
-							cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?)", (self.entCodigoCliente.get(),))
+							cursor.execute("DELETE FROM SALDOS WHERE CLIENTE = (?)", (self.entCodigoCliente.get(),))
 
 						# verificamos si hay comentario, si lo hay le agregamos la fecha:
 						if len(str(self.txtComentarioCliente.get("1.0", "end")).replace("\n","")) >= 4:
@@ -1124,7 +1177,7 @@ class InterfazPrincipal:
 
 
 						# cursor.execute("DELETE FROM SALDOS WHERE COD_CLIENTE = (?) AND CONCEPTO=(?)",(self.entCodigoCliente.get(),"SALDADO"))
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end").upper()))
+						cursor.execute("INSERT INTO SALDOS (CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO, ABONO, COMENTARIO) VALUES (?,?,?,?,?,?,?)",(self.entCodigoCliente.get() ,nombre_saldo[0], codigo_sgte ,concepto_final, total, concepto_abono[1], self.txtComentarioCliente.get("1.0", "end").upper()))
 						self.entCodigoCliente.delete(0,END)
 						self.txtComentarioCliente.delete("1.0", "end")
 						self.checkIncluirSaldo.invoke()
@@ -1142,7 +1195,7 @@ class InterfazPrincipal:
 						return
 
 					else:
-						cursor.execute("SELECT COD_FACTURA FROM HISTORIAL_COMPRA ORDER BY COD_FACTURA DESC")
+						cursor.execute("SELECT FACTURA FROM VENTAS ORDER BY FACTURA DESC")
 						codigo_sgte = cursor.fetchone()[0]+1
 
 						# verificamos si hay comentario, si lo hay le agregamos la fecha:
@@ -1152,7 +1205,7 @@ class InterfazPrincipal:
 							self.txtComentarioCliente.delete("1.0", "end")
 
 
-						cursor.execute("INSERT INTO SALDOS (COD_CLIENTE, NOMBRE_CLIENTE, COD_FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end").upper()))
+						cursor.execute("INSERT INTO SALDOS (CLIENTE, NOMBRE, FACTURA, CONCEPTO, SALDO, COMENTARIO) VALUES (?,?,?,?,?,?)",(self.entCodigoCliente.get(), self.entNombreCliente.get().upper(), codigo_sgte,concepto_final, total, self.txtComentarioCliente.get("1.0", "end").upper()))
 						messagebox.showinfo(title="CREACIÓN EXITOSA", message=f"Cliente {self.entCodigoCliente.get()} creado con éxito.")
 						self.checkIncluirSaldo.invoke()
 
@@ -1163,29 +1216,39 @@ class InterfazPrincipal:
 					return
 
 
-			# self.listaCompra = pd.DataFrame(columns = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
+			self = args[0]
+			cursor = kwargs["cursor"]
+			conexion = kwargs["conexion"]
 
+			# self.listaCompra = pd.DataFrame(columns = ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
 			lista_factura = self.listaCompra
 			lista_factura["COD_FACTURA"]=len(lista_cod)
-			lista_factura = lista_factura[["COD_FACTURA", "CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]]
+			lista_factura = lista_factura[["COD_FACTURA", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]]
+			lista_factura = lista_factura.drop('PRECIO_UNIT', axis=1)
 
 			# cursor.executemany("""
 			# 	INSERT INTO HISTORIAL_COMPRA (COD_FACTURA, COD_ARTICULO, ARTICULO, PRECIO_UNIT, CANTIDAD, PRECIO_TOT, GANANCIA_TOT ) VALUES (?,?,?,?,?,?,?)"""
 			# 	,lista_factura)
-			cursor.executemany("""
-				INSERT INTO HISTORIAL_COMPRA (COD_FACTURA, COD_ARTICULO, ARTICULO, PRECIO_UNIT, CANTIDAD, PRECIO_TOT, GANANCIA_TOT ) VALUES (?,?,?,?,?,?,?)"""
-				,lista_factura.values.tolist())
+			for llave, valor in lista_factura.iterrows():
+				cursor.execute("""INSERT INTO VENTAS (CODIGO, FACTURA, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT) 
+								VALUES (?,?,?,?,?,?)""", (llave, valor["COD_FACTURA"], valor["NOMBRE"], valor["CANTIDAD_COMPRA"], valor["SUB_TOTAL"], valor["UTILIDAD"]-valor["SUB_TOTAL"]))
+
+			# cursor.executemany("""
+			# 	INSERT INTO VENTAS (FACTURA, CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT ) VALUES (?,?,?,?,?,?)"""
+			# 	,lista_factura.values.tolist())
 
 			# ACTUALIZAMOS LA CANTIDAD PARA CADA ARTÍCULO DE LA LISTA DE COMPRA EN LA BBDD
-
-			for i in range(len(lista_factura)):
-				cursor.execute("SELECT CANTIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (lista_factura.iloc[i, 1],))
+			# "COD_FACTURA", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"
+			for llave, valor in lista_factura.iterrows():
+				cursor.execute("SELECT STOCK FROM INVENTARIO WHERE CODIGO = (?)", (llave,))
 				cantidad = cursor.fetchone()
-				cursor.execute("UPDATE INVENTARIO_PAPELERIA SET CANTIDAD = (?) WHERE CODIGO = (?)",(cantidad[0]-lista_factura.iloc[i, 4], lista_factura.iloc[i, 1]))
+				cursor.execute("UPDATE INVENTARIO SET STOCK = (?) WHERE CODIGO = (?)",(cantidad[0]-lista_factura.loc[llave, "CANTIDAD_COMPRA"], llave))
 
 
 			# pregunta = messagebox.askquestion(title="COMPRA",message=f"Total a pagar: $ {sum( i[4] for i in self.listaCompra)}\n¿Deseas imprimir la factura?")
 			total = self.listaCompra["SUB_TOTAL"].sum()
+			# *INCLUIR UNA ENTRADA CUANDO VAYAN A PAGAR, PARA HACER LOS CAMBIOS AUTOMÁTICAMENTE (NO ES NECESARIO QUE SEA EN UN TOP LEVEL)
+			print("el total de la compra fue de: ", total)
 
 			# pregunta = messagebox.askquestion(title="COMPRA", message=f"Total a pagar: $ {total}\n¿Deseas imprimir la factura?")
 
@@ -1388,8 +1451,12 @@ class InterfazAdministrativa(Tk):
 		self.entUtilidad["state"]="readonly"
 		self.entComentario.delete(0,"end")
 
-	@conexiones.decoradorBaseDatos
-	def generarCodigo(self, cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def generarCodigo(*args, **kwargs):
+
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		if self.entCodigo["state"]=="normal" and self.entCodigo != "":
 
@@ -1412,9 +1479,14 @@ class InterfazAdministrativa(Tk):
 			messagebox.showwarning(title="PROBLEMA CON CÓDIGO",message="Borra el campo del código")
 
 
-	@conexiones.decoradorBaseDatos
-	def crearArticulo(self, cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def crearArticulo(*args, **kwargs):
 
+
+
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		if self.entCodigo["state"]=="normal":
 
@@ -1447,7 +1519,7 @@ class InterfazAdministrativa(Tk):
 
 
 				cursor.execute("""
-					INSERT INTO INVENTARIO_PAPELERIA (CODIGO, NOMBRE, MARCA, CANTIDAD, PRECIO, COSTO, COMENTARIO)
+					INSERT INTO INVENTARIO (CODIGO, ARTICULO, MARCA, CANTIDAD, PRECIO, COSTO, COMENTARIO)
 					VALUES (?,?,?,?,?,?,?)
 					""",tuple(articuloNuevo.values))
 				messagebox.showinfo("ARTICULO_NUEVO","Articulo nuevo creado con éxito.")
@@ -1467,8 +1539,14 @@ class InterfazAdministrativa(Tk):
 		self.frameDos.place_forget()
 
 
-	@conexiones.decoradorBaseDatos
-	def verArticulo(self,cursor, conexion, tipo):
+	@conexiones.decoradorBaseDatos3
+	def verArticulo(*args, **kwargs):
+
+
+		self = args[0]
+		tipo = args[1]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		def organizar(campo, lugar):
 
@@ -1508,13 +1586,13 @@ class InterfazAdministrativa(Tk):
 
 		if tipo == "TOTAL":
 			cursor.execute("""
-				SELECT * FROM INVENTARIO_PAPELERIA ORDER BY NOMBRE
+				SELECT * FROM INVENTARIO ORDER BY ARTICULO
 				""")
 
 		elif tipo == "ESPECIFICO":
 
 			cursor.execute("""
-				SELECT * FROM INVENTARIO_PAPELERIA WHERE NOMBRE = (?)
+				SELECT * FROM INVENTARIO WHERE ARTICULO = (?)
 				""", (self.entNombre.get().upper(),))
 
 		self.lectura=cursor.fetchall()
@@ -1581,10 +1659,15 @@ class InterfazAdministrativa(Tk):
 		# interfazArbol.grid(row=1,column=0)
 		# interfazArbol.pack( fill=BOTH, expand=True)
 
-	@conexiones.decoradorBaseDatos
-	def actualizarArticulo(self,cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def actualizarArticulo(*args, **kwargs):
 		# *SE NECESITA ACTUALIZAR INVENTARIO, LO MEJOR ES TENER UN ENTRY EN EL INVENTARIO QUE SUME LOS ARTICULOS NUEVOS
 		# *SE QUITA EL BOTÓN DE ACTUALIZACIONES INDIVIDUALES ¿?
+
+
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		# CONEXION BBDD
 		if self.entCodigo["state"]=="readonly":
@@ -1596,7 +1679,7 @@ class InterfazAdministrativa(Tk):
 			# conexion = sqlite3.connect("BASE_DATOS_PRUEBA.db")
 			# cursor = conexion.cursor()
 			cursor.execute("""
-				UPDATE INVENTARIO_PAPELERIA SET NOMBRE=(?), MARCA=(?), CANTIDAD=(?), PRECIO=(?), COSTO=(?), COMENTARIO=(?) WHERE CODIGO=(?);
+				UPDATE INVENTARIO SET ARTICULO=(?), MARCA=(?), CANTIDAD=(?), PRECIO=(?), COSTO=(?), COMENTARIO=(?) WHERE CODIGO=(?);
 				""", actualizacion)
 			# conexion.commit()
 			# cursor.close()
@@ -1611,7 +1694,7 @@ class InterfazAdministrativa(Tk):
 		if self.entCodigo.get() != "" and self.entCodigo["state"]=="normal":
 
 			cursor.execute("""
-				SELECT CODIGO FROM INVENTARIO_PAPELERIA
+				SELECT CODIGO FROM INVENTARIO
 				""")
 			lectura = cursor.fetchall()
 			confirmacion = False
@@ -1622,7 +1705,7 @@ class InterfazAdministrativa(Tk):
 			# Si el artículo está en BBDD, mostramos los datos en pantalla y bloqueamos el código.
 			if confirmacion:
 
-				cursor.execute("SELECT * FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (self.entCodigo.get().upper(),) )
+				cursor.execute("SELECT * FROM INVENTARIO WHERE CODIGO = (?)", (self.entCodigo.get().upper(),) )
 				lectura2 = cursor.fetchall()
 				self.entCodigo["state"]="readonly"
 				
@@ -1647,12 +1730,17 @@ class InterfazAdministrativa(Tk):
 			messagebox.showwarning(title="ERROR", message="Digita porfavor el código del artículo.")
 			# self.borrarCampos()
 
-	@conexiones.decoradorBaseDatos
-	def eliminarArticulo(self,cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def eliminarArticulo(*args, **kwargs):
+
+
+		self = args[0]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		if self.entCodigo.get()!="":
 
-			cursor.execute("SELECT * FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)",(self.entCodigo.get().upper(),))
+			cursor.execute("SELECT * FROM INVENTARIO WHERE CODIGO = (?)",(self.entCodigo.get().upper(),))
 
 			lectura = cursor.fetchone()
 			lectura = pd.Series(data = lectura, index = ["CODIGO", "NOMBRE", "MARCA", "CANTIDAD", "PRECIO", "COSTO", "UTILIDAD", "COMENTARIO", "DISPONIBILIDAD"])
@@ -1664,7 +1752,7 @@ class InterfazAdministrativa(Tk):
 				confirmacion = messagebox.askquestion(title="ELIMINACIÓN_CONFIRMACIÓN", message=f"¿Estás segur@ deseas eliminar el siguiente artículo:\n{lectura.loc['NOMBRE']}-{lectura.loc['MARCA']}?")
 				
 				if confirmacion == "yes":
-					cursor.execute("DELETE FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)",(lectura[0][0],))
+					cursor.execute("DELETE FROM INVENTARIO WHERE CODIGO = (?)",(lectura[0][0],))
 					messagebox.showinfo(title="ELIMINACION EXITOSA",message=f"{lectura[0][1]} - {lectura[0][2]}, eliminado con éxito.")	
 
 		else:
@@ -1673,9 +1761,15 @@ class InterfazAdministrativa(Tk):
 
 		self.borrarCampos()
 
-	@conexiones.decoradorBaseDatos		
-	def verGrafico(self, cursor, kwargs, rango, categoria):
+	@conexiones.decoradorBaseDatos3		
+	def verGrafico(*args, **kwargs):
 
+
+		self = args[0]
+		rango = args[1]
+		categoria = args[2]
+		cursor = kwargs["cursor"]
+		conexion = kwargs["conexion"]
 
 		# *organizar los diagramas de mayor a menor, con posibilidad de cambiar el orden
 		# *integrar el gráfico al frameDos, que se pueda manipular de una mejor forma, contemplando la implementación de scroll
@@ -1683,13 +1777,13 @@ class InterfazAdministrativa(Tk):
 		if rango == "DIA":
 			# capturamos la opción elegida en la interfaz
 			criterio = self.anho.get()+'-'+self.mes.get()+'-'+self.dia.get()
-			cursor.execute("SELECT COD_ARTICULO, ARTICULO, CANTIDAD, PRECIO_TOT, GANANCIA_TOT FROM HISTORIAL_COMPRA WHERE DATE(FECHA) = DATE(?)", (criterio,))
+			cursor.execute("SELECT CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, UTILIDAD FROM VENTAS WHERE DATE(FECHA) = DATE(?)", (criterio,))
 			lista_vendidos = cursor.fetchall()
 
 		elif rango == "MES":
 
 			criterio = self.anho.get()+'-'+self.mes.get()+'%'
-			cursor.execute("SELECT COD_ARTICULO, ARTICULO, CANTIDAD, PRECIO_TOT, GANANCIA_TOT FROM HISTORIAL_COMPRA WHERE FECHA LIKE (?)", (criterio,))
+			cursor.execute("SELECT CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, UTILIDAD FROM VENTAS WHERE FECHA LIKE (?)", (criterio,))
 			lista_vendidos = cursor.fetchall()
 
 		result = {}
@@ -1751,7 +1845,7 @@ class InterfazAdministrativa(Tk):
 					# Creo un diccionario con las horas en que el local está abierto
 					dicci = {x:0 for x in range(8,24)}
 
-					cursor.execute("SELECT ARTICULO, CANTIDAD, GANANCIA_TOT, CAST(strftime('%H', FECHA) AS INTEGER) FROM HISTORIAL_COMPRA WHERE DATE(FECHA) = DATE(?)", (criterio,))
+					cursor.execute("SELECT ARTICULO, CANTIDAD, UTILIDAD, CAST(strftime('%H', FECHA) AS INTEGER) FROM VENTAS WHERE DATE(FECHA) = DATE(?)", (criterio,))
 
 				else:
 
@@ -1759,7 +1853,7 @@ class InterfazAdministrativa(Tk):
 					# *INCLUIR DIA DE SEMANA
 					dicci = {x:0 for x in range(1,32)}
 
-					cursor.execute("SELECT ARTICULO, CANTIDAD, GANANCIA_TOT, CAST(strftime('%d', FECHA) AS INTEGER) FROM HISTORIAL_COMPRA WHERE FECHA LIKE (?)", (criterio,))
+					cursor.execute("SELECT ARTICULO, CANTIDAD, UTILIDAD, CAST(strftime('%d', FECHA) AS INTEGER) FROM VENTAS WHERE FECHA LIKE (?)", (criterio,))
 				
 				horadia_ganancia = cursor.fetchall()
 				for venta in horadia_ganancia:
@@ -1780,8 +1874,8 @@ class InterfazAdministrativa(Tk):
 
 			messagebox.showinfo(title = "ERROR", message = "No se registran ventas para esa fecha")
 
-	@conexiones.decoradorBaseDatos
-	def verSaldos(self, cursor, conexion):
+	@conexiones.decoradorBaseDatos3
+	def verSaldos(*args, **kwargs):
 		# *CREAR UNA TABLA DONDE ESTÉ REGISTRADO LAS PERSONAS QUE DEBAN
 		# *PERMITIR MODIFICACIONES 
 		# self.frameDos.place(relx=.03,rely=.19,relwidth=.94,relheight=.80)
