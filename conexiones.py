@@ -1,5 +1,8 @@
 import sqlite3
 import datetime
+import locale
+
+locale.setlocale(locale.LC_TIME, 'es_ES.utf8')
 # class Pruebas:
 
 # 	def decoradorBaseDatos5(funcion):

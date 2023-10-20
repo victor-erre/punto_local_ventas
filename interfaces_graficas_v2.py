@@ -130,12 +130,11 @@ class Validaciones:
 			return False
 
 
-# class InterfazPrincipal(Frame):
 class InterfazPrincipal:
 
-	# *POTTER: funcion para guardar las sugerencias o productos que solicitan y no hay.
+	# ***POTTER: funcion para guardar las sugerencias o productos que solicitan y no hay.
 	"""
-	Interfaz genérica que contiene las operaciones comunes que se hacen en el negocio,
+	Interfaz genérica que contiene las operaciones comunes que se hacen en el negocio `PAPELERIA VALERIA`,
 	Pago de servicios, recargas, compra de artículos y tareas administrativas.
 	"""
 
@@ -144,7 +143,8 @@ class InterfazPrincipal:
 		self.raiz.focus_set()
 		self.raiz.geometry("400x450+100+100")
 		self.raiz.resizable(False,False)
-		# creamos una instancia de la clase validaciones, para usar sus métodos.
+
+		# creamos dos instancias de clase, para usar sus métodos y atributos.
 		self.validaciones = Validaciones()
 		self.conversiones = Conversiones()
 		self.crearWidgets()
@@ -152,6 +152,7 @@ class InterfazPrincipal:
 
 	def crearWidgets(self):
 		
+		# CONTENDRÁ 
 		self.listaCompra = pd.DataFrame(columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
 
 
@@ -951,17 +952,21 @@ class InterfazPrincipal:
 
 		def seleccionArticulo(*args, **kwargs):
 			# cuando no se puede sumar mas
-			codigo = treeVista.selection()[0]
+			if treeVista.get_children():
 
-			if validacion[codigo][0] == validacion[codigo][1]:
-				btnAumentar["state"]= "disabled"
+				codigo = treeVista.selection()[0]
 
-				# tooltip = ttk.Label(btnAumentar, text="Ya no hay stock", background="#ffffe0", relief="solid")
-				# tooltip.place(in_=btnAumentar, relx=0.5, rely=1.2, anchor="n")
-				# btnAumentar.tooltip = tooltip
+				if validacion[codigo][0] == validacion[codigo][1]:
+					btnAumentar["state"]= "disabled"
 
-			else:
-				btnAumentar["state"] = "normal"
+					# tooltip = ttk.Label(btnAumentar, text="Ya no hay stock", background="#ffffe0", relief="solid")
+					# tooltip.place(in_=btnAumentar, relx=0.5, rely=1.2, anchor="n")
+					# btnAumentar.tooltip = tooltip
+
+				else:
+					btnVaciarCarrito["state"] = "normal"
+					btnAumentar["state"] = "normal"
+					btnDisminuir["state"] = "normal"
 
 		def salir(event):
 
@@ -971,45 +976,85 @@ class InterfazPrincipal:
 			conexion.close()
 			interfazArticulos.destroy()
 
-		def reiniciarLista():
+		def actualizarVista(*args):
+
+			# Este condicional es empleado cuando se borra el último articulo del carrito de compra
+			if args:
+
+				vaciarCarrito()
+				return
+
+			if len(self.listaCompra) == 0:
+
+				btnVaciarCarrito["state"] = "disabled"
+				btnAumentar["state"] = "disabled"
+				btnDisminuir["state"] = "disabled"
+
+
+			if len(self.listaCompra) != 0:
+
+				treeVista.delete(*treeVista.get_children())
+				valorTotal = self.listaCompra.loc[:,"SUB_TOTAL"].sum()
+
+				contador = 1
+
+				for indice in self.listaCompra.index.tolist():
+					treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
+					contador += 1
+
+				lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
+
+				treeVista.selection_set(treeVista.get_children()[0])
+
+
+		def vaciarCarrito():
 
 			treeVista.delete(*treeVista.get_children())
 
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)		
+			btnAumentar["state"]="disabled"
+			btnDisminuir["state"]="disabled"
+			btnVaciarCarrito["state"] = "disabled"
 
 		def modificarCantidad(tipo):
-			# * modificar la cantidad en el carrito y que se vea reflejado en la interfaz.
+			# * modificar la cantidad de compra, el subtotal, y el total en la interfaz simultaneamente.
 			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
 			
+
 			codigo = treeVista.selection()[0]
 
 			if tipo == "MAS":
 				# if validacion[codigo][0] > self.listaCompra.at[codigo, "CANTIDAD_COMPRA"]:
+				# MODIFICAR en el carrito la cantidad de compra, y por consiguiente el sub_total 
 				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] += 1
 				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
-
+				# MODIFICAR el item correspondiente en la interfaz
+				valores = treeVista.item(codigo)["values"]
+				treeVista.item(codigo, values = [valores[0],valores[1],valores[2],valores[3], valores[4]+1,valores[3]*(valores[4]+1)])
+				# treeVista.item(codigo, values = self.listaCompra.loc[codigo, : ].tolist())
 			else:
 				if validacion[codigo][1]==1:
 
-					pregunta = messagebox.askquestion(title="CONFIRMACIÓN", message = "Deseas eliminar éste artículo del carrito?")
+					pregunta = messagebox.askquestion(title="CONFIRMACIÓN", message = "Deseas eliminar éste artículo del carrito?", parent=interfazArticulos)
 					if pregunta =="yes":
+						validacion.pop(codigo)
 						self.listaCompra = self.listaCompra.drop(codigo)
 						# *actualizar la vista sin el artículo eliminado
+						actualizarVista("VACIA") if len(self.listaCompra) == 0 else actualizarVista()
 						return
 				else:
 					self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] -= 1
 					self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
+					# MODIFICAR el item correspondiente en la interfaz
+					valores = treeVista.item(codigo)["values"]
+					treeVista.item(codigo, values = [valores[0],valores[1],valores[2],valores[3], valores[4]-1,valores[3]*(valores[4]-1)])
 
 			validacion[codigo][1] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"]
+			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum())
 			print(validacion)
 			seleccionArticulo(None)
 									
-		# def show_tooltip(widget):
-		# 	tooltip = ttk.Label(widget, text="Ya no hay stock", background="#ffffe0", relief="solid")
-		# 	tooltip.place(in_=widget, relx=0.5, rely=1.2, anchor="n")
-		# 	widget.tooltip = tooltip
-
 		self = args[0]
 		conexion = kwargs["conexion"]
 		cursor = kwargs["cursor"]
@@ -1033,13 +1078,11 @@ class InterfazPrincipal:
 		btnAumentar = Button(interfazArticulos, text="+", borderwidth = 0, command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
 
-		# btnAumentar.bind("<Enter>", lambda event: show_tooltip(btnAumentar))
-		# btnAumentar.bind("<Leave>", lambda event: btnAumentar.tooltip.destroy())
 
 		btnDisminuir = Button(interfazArticulos, text="-", borderwidth = 0, command= lambda : modificarCantidad("MENOS"))
 		btnDisminuir.place(relx=0.92, rely=0.12)
 
-		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR", width = 12, command = reiniciarLista)
+		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR CARRITO", width = 12, command = vaciarCarrito)
 		btnVaciarCarrito.place(relx= 0.2, rely = 0.92)
 
 		Label(interfazArticulos, text = "TOTAL:", width = 10).place(relx = 0.60, rely = 0.92)
@@ -1062,44 +1105,23 @@ class InterfazPrincipal:
 		treeVista.heading("CANTIDAD", text = "CANTIDAD")
 		treeVista.heading("TOTAL", text = "TOTAL")
 
-		# impresion()
-
-		if len(self.listaCompra) != 0:
-
-			valorTotal = self.listaCompra.loc[:,"SUB_TOTAL"].sum()
-			contador = 1
-
-			for indice in self.listaCompra.index.tolist():
-				treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
-				contador += 1
-
-			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(valorTotal) 
-
-			treeVista.selection_set(treeVista.get_children()[0])
-
-
+		actualizarVista()
 		codigos = self.listaCompra.index.tolist()
 		cursor.execute("SELECT CODIGO, STOCK FROM INVENTARIO WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
 
 		# *eliminar el bloque sgte agregandole un campo en el carrito de la cantidad que hay en stock
+		# *Nos podemos evitar lo de arriba si le pasamos desde la BBDD el stock y la cantidad de compra
 		inventario = {}
 		for i in cursor.fetchall():
 			inventario.update({i[0]:i[1]})
 		# FORMATO: validacion = {"codigo_articulo":[cantidad_inventario, cantidad_compra]}
 		validacion = {}
-		# for i in codigos:
-		# 	for j in inventario:
-		# 		if self.listaCompra.at[i, "CODIGO"] == i:
-		# 			validacion.update({j : [inventario[j], self.listaCompra.at[i,"CANTIDAD_COMPRA"]]})
-		# 		continue
 		for llave, valor in self.listaCompra.iterrows():
 			for i in inventario:
 				if llave == i:
 					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
 				continue
-		print(inventario)
 
-		# print(validacion)
 
 	# def generarCodigoCliente(self,cursor):
 	def generarCodigoCliente(*args, **kwargs):

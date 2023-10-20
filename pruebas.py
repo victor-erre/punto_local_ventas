@@ -169,6 +169,8 @@ def pruebaDataFrame():
 	for llave, valor in df1.iterrows():
 		print(llave)
 		print(valor.loc["edad"])
+	print(df2.loc["Elemento 1", :].tolist())
+	# print(df2.index)	
 pruebaDataFrame()
 
 def pruebaSeries():
@@ -384,3 +386,10 @@ def extractoBancolombia():
 			# print(tipo, "--->>",type(tipo))
 			suma+=float(i.replace(".00", "").replace(",", ""))
 
+# diccionario = {"letra":["a", "b", "c"], "codigo":["pri", "herma", "tio"]}
+# # print(diccionario)
+# a = diccionario.pop("letras", "equivocado")
+# print(diccionario)
+# print(a)
+
+# help(diccionario)
