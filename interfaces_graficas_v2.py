@@ -351,6 +351,11 @@ class InterfazPrincipal:
 
 					btnRecarga["state"]="disabled"
 
+			def cambioOperador(event):
+				self.entNumeroRecarga.delete(0,END)
+				self.entValorRecarga.delete(0, END)
+
+
 			numeroCelular = StringVar()
 			valorRecarga = StringVar()
 
@@ -374,7 +379,7 @@ class InterfazPrincipal:
 			btnRecarga.place(relx=0.4, rely=0.7)
 
 			self.entValorRecarga.bind("<KeyRelease>", lambda _:habilitarRecarga(_))
-			tipoOperador.bind("<<ComboboxSelected>>", lambda _:self.entNumeroRecarga.delete(0,END))
+			tipoOperador.bind("<<ComboboxSelected>>", lambda event:cambioOperador(event))
 
 		elif self.menuOperacion.get()=="ADMINISTRACION":
 			InterfazAdministrativa(self.raiz)
@@ -877,77 +882,86 @@ class InterfazPrincipal:
 		# Obtenemos el articulo que deseamos agregar
 		articulo = cursor.fetchone()
 
+		if articulo == None:
+			messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
+			return
+
+
 		# FORMATO: <articulo pd.Series> = ["CODIGO" "NOMBRE" "PRECIO_UNIT" "CANTIDAD_STOCK" "UTILIDAD"]
 		articulo = pd.Series(data = articulo[1:], name = articulo[0], index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "UTILIDAD"])
 
 		# si `articulo` == None (cuando no está el codigo en BBDD), el tipo de dato en campo  `NOMBRE` será `numpy.float64` debido a que es el tipo de datos
 		# que toman cuando los valores son None
 		
-		if isinstance(articulo.loc["NOMBRE"],numpy.float64): 
+		# if isinstance(articulo.loc["NOMBRE"],numpy.float64): 
+		# if isinstance(articulo.loc["NOMBRE"],numpy.float64): 
 
-			messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
+		# 	messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
 
-		else:
+		# else:
 
 
-			if articulo["CANTIDAD_STOCK"] > 0:
+		if articulo["CANTIDAD_STOCK"] > 0:
 
-				# COMPROBACIÓN: presencia en el carrito de compras.
-				if articulo.name in self.listaCompra.index.tolist():
+			# COMPROBACIÓN: presencia en el carrito de compras.
+			if articulo.name in self.listaCompra.index.tolist():
 
-						if articulo["CANTIDAD_STOCK"] >= (self.listaCompra.at[articulo.name,"CANTIDAD_COMPRA"]+1):
-							
-							# copiar la información del articulo a modificar.
-							articulo_modificar = self.listaCompra.loc[articulo.name,:]
+					if articulo["CANTIDAD_STOCK"] >= (self.listaCompra.at[articulo.name,"CANTIDAD_COMPRA"]+1):
+						
+						# copiar la información del articulo a modificar.
+						articulo_modificar = self.listaCompra.loc[articulo.name,:]
 
-							# linea para omitir la advertencia de pandas.Dataframe sobre la reasignacion de valores
-							pd.options.mode.chained_assignment = None
+						# linea para omitir la advertencia de pandas.Dataframe sobre la reasignacion de valores
+						pd.options.mode.chained_assignment = None
 
-							# Realizar las modificaciones pertinentes.
-							articulo_modificar.at["CANTIDAD_COMPRA"] += 1
-							articulo_modificar.at["SUB_TOTAL"] = articulo_modificar.at["PRECIO_UNIT"] * articulo_modificar.at["CANTIDAD_COMPRA"]
-							articulo_modificar.at["UTILIDAD"] = int(articulo_modificar.at["UTILIDAD"]/(articulo_modificar.at["CANTIDAD_COMPRA"]-1)*articulo_modificar.at["CANTIDAD_COMPRA"])
+						# Realizar las modificaciones pertinentes.
+						articulo_modificar.at["CANTIDAD_COMPRA"] += 1
+						articulo_modificar.at["SUB_TOTAL"] = articulo_modificar.at["PRECIO_UNIT"] * articulo_modificar.at["CANTIDAD_COMPRA"]
+						articulo_modificar.at["UTILIDAD"] = int(articulo_modificar.at["UTILIDAD"]/(articulo_modificar.at["CANTIDAD_COMPRA"]-1)*articulo_modificar.at["CANTIDAD_COMPRA"])
 
-							# actualizar la lista con el articulo modificado.
-							self.listaCompra.loc[articulo.name, [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
-						else:
-							messagebox.showwarning(title = "STOCK AGOTADO", message = "No hay unidades de {} disponibles.".format(articulo["NOMBRE"].upper()))
-
-				else:
-
-					# agregamos el campo de subtotal que es equival al precio unitario:
-					articulo = pd.concat([articulo, pd.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"], name= articulo.name)])
-
-					# Organizamos el orden de los campos:
-					articulo = articulo.reindex([ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
-
-					# renombramos correctamente los campos:
-					articulo.index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
-
-					# Cambiamos el valor de la cantidad en stock por uno; que es la unidad del articulo que se va a comprar:
-					articulo.at["CANTIDAD_COMPRA"]=1
-
-					# se crea un df para asignarle índice que corresponde al código del producto
-					df_articulo = articulo.to_frame().T
-					df_articulo.index = [articulo.name]
-
-					# Agregamos el artículo nuevo en la lista:
-					self.listaCompra = pd.concat([self.listaCompra, df_articulo], axis= 0, ignore_index=False)
-
-					self.cantidadListaCompra.config(text=len(self.listaCompra))
-					print(self.listaCompra)
+						# actualizar la lista con el articulo modificado.
+						self.listaCompra.loc[articulo.name, [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
+					else:
+						messagebox.showwarning(title = "STOCK AGOTADO", message = "No hay unidades de {} disponibles.".format(articulo["NOMBRE"].upper()))
 
 			else:
 
-				messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
-			
+				# agregamos el campo de subtotal que es equival al precio unitario:
+				articulo = pd.concat([articulo, pd.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"], name= articulo.name)])
+
+				# Organizamos el orden de los campos:
+				articulo = articulo.reindex([ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
+
+				# renombramos correctamente los campos:
+				articulo.index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
+
+				# Cambiamos el valor de la cantidad en stock por uno; que es la unidad del articulo que se va a comprar:
+				articulo.at["CANTIDAD_COMPRA"]=1
+
+				# se crea un df para asignarle índice que corresponde al código del producto
+				df_articulo = articulo.to_frame().T
+				df_articulo.index = [articulo.name]
+
+				# Agregamos el artículo nuevo en la lista:
+				self.listaCompra = pd.concat([self.listaCompra, df_articulo], axis= 0, ignore_index=False)
+
+				self.cantidadListaCompra.config(text=len(self.listaCompra))
+				# print(self.listaCompra)
+
+		else:
+
+			messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
+		
 	@conexiones.decoradorBaseDatos3
 	def modificarArticulo(*args, **kwargs):
 
-		# *al presionar el articulo en cuestion habilite los botones para eliminar o aumentar, de acuerdo a la cantidad en inventario y la cantidad en la lista.
-		# ...cuando la cantidad en el carro sea igual que en inventario, se deshabilite el botón aumentar, y saldo un Label que indique que no se puede durante 2 seg.
-		#* la modificacion se vea reflejada en simultáneo.
-		#* Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
+		"""
+		INTERFAZ para visualizar y modificar el carrito de compra.
+		"""
+
+		# ?Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
+		# *Boton para eliminar articulo seleccionado
+		# *Botón para comprar desde la interfaz
 		# *Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
 
 		def seleccionArticulo(*args, **kwargs):
@@ -1018,7 +1032,6 @@ class InterfazPrincipal:
 			btnVaciarCarrito["state"] = "disabled"
 
 		def modificarCantidad(tipo):
-			# * modificar la cantidad de compra, el subtotal, y el total en la interfaz simultaneamente.
 			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
 			
 
@@ -1253,7 +1266,7 @@ class InterfazPrincipal:
 			# 	,lista_factura)
 			for llave, valor in lista_factura.iterrows():
 				cursor.execute("""INSERT INTO VENTAS (CODIGO, FACTURA, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT) 
-								VALUES (?,?,?,?,?,?)""", (llave, valor["COD_FACTURA"], valor["NOMBRE"], valor["CANTIDAD_COMPRA"], valor["SUB_TOTAL"], valor["UTILIDAD"]-valor["SUB_TOTAL"]))
+								VALUES (?,?,?,?,?,?)""", (llave, valor["COD_FACTURA"], valor["NOMBRE"], valor["CANTIDAD_COMPRA"], valor["SUB_TOTAL"], valor["SUB_TOTAL"] - valor["UTILIDAD"]))
 
 			# cursor.executemany("""
 			# 	INSERT INTO VENTAS (FACTURA, CODIGO, ARTICULO, CANTIDAD, PRECIO_TOT, COSTO_TOT ) VALUES (?,?,?,?,?,?)"""
@@ -1299,6 +1312,8 @@ class InterfazPrincipal:
 	def borrarCampos(self):
 
 		self.listaCompra.drop(index=self.listaCompra.index, inplace=True)
+		if "COD_FACTURA" in self.listaCompra.columns:
+			self.listaCompra.drop("COD_FACTURA", axis = 1, inplace=True)
 		self.cantidadListaCompra["text"]=0
 
 class InterfazAdministrativa(Tk):
@@ -1308,9 +1323,10 @@ class InterfazAdministrativa(Tk):
 	Contiene sus respectivos widgets interactivos.
 	Cada vez que se crea una instacia, el tipo de ventana que arroja es una Toplevel
 	"""
-	# cuando se abra esta interfaz, que la ventana esté enfocada (cuando se crea, el foco está en la ppal)
-	# *cambiar los botones de la interfaz a la ventana de inventario (crear, borrar(cuando se selecciona),..
-	# actualizar(al seleccionar))
+	# *REESTRUCTURAR los tipos de datos.
+	# *cuando se abra esta interfaz, que la ventana esté enfocada (cuando se crea, el foco está en la ppal)
+	# *cambiar los botones de la interfaz a la ventana de inventario (crear, borrar(cuando se selecciona)
+	# ...actualizar(al seleccionar))
 	# *Poner la fecha en español
 
 	def __init__(self,master=None):
@@ -1482,7 +1498,7 @@ class InterfazAdministrativa(Tk):
 
 		if self.entCodigo["state"]=="normal" and self.entCodigo != "":
 
-			cursor.execute("SELECT CODIGO FROM ARTICULOS_CREACION ORDER BY CODIGO")
+			cursor.execute("SELECT CODIGO FROM ART_CREACION ORDER BY CODIGO")
 
 			# enlistado de todos los codigos de la BBDD
 			lista = cursor.fetchall()

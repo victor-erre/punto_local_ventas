@@ -166,10 +166,15 @@ def pruebaDataFrame():
 	df2 = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
 
 	df1 = pandas.concat([df1, df2])
-	for llave, valor in df1.iterrows():
-		print(llave)
-		print(valor.loc["edad"])
-	print(df2.loc["Elemento 1", :].tolist())
+	# for llave, valor in df1.iterrows():
+	# 	print(llave)
+	# 	print(valor.loc["edad"])
+	print(df1)
+	if "nombre" in df1.columns:
+		df1 = df1.drop("nombre", axis=1)
+	print(df1)
+	if "pruebas" in df1.columns:
+		print("entramos en el condicional")
 	# print(df2.index)	
 pruebaDataFrame()
 
