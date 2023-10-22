@@ -259,12 +259,16 @@ class InterfazPrincipal:
 
 			@conexiones.decoradorBaseDatos3
 			def listaCodigos(*args, **kwargs):
+				
+				# ?Implementar buscador
 				cursor = kwargs["cursor"]
 				conexion = kwargs["conexion"]
 				cursor.execute("SELECT CODIGO, ARTICULO, MARCA FROM INVENTARIO ORDER BY CODIGO")
 				listado = cursor.fetchall()
 				
 				ventana = Toplevel(self.raiz)
+				ventana.resizable(False, False)
+				ventana.grab_set()
 				arbolLista = ttk.Treeview(ventana, columns=["CODIGO", "ARTICULO", "MARCA"], selectmode = NONE)
 				arbolLista.place(relwidth=1, relheight=1)
 
@@ -334,13 +338,13 @@ class InterfazPrincipal:
 
 			self.txtComentarioCliente = Text(self.frameOpciones)
 
-			Button(self.frameOpciones,text="BORRAR COMPRA",command=borrarCompra).place(relx=0.42,rely=0.63)
+			Button(self.frameOpciones,text="VACIAR CARRITO",command=borrarCompra).place(relx=0.42,rely=0.63)
 
-			Button(self.frameOpciones, text="CARRITO", command=self.modificarArticulo).place(relx=0.1, rely=0.74)
+			Button(self.frameOpciones, text="VER CARRITO", command=self.modificarArticulo).place(relx=0.1, rely=0.74)
 
-			Button(self.frameOpciones, text="FINALIZAR", command= self.compra).place(relx=0.45, rely=0.74)
+			Button(self.frameOpciones, text="FINALIZAR COMPRA", command= self.compra).place(relx=0.45, rely=0.74)
 
-			Button(self.frameOpciones, text= "SALDOS", command=self.interfazSaldos).place(relx=0.80, rely=0.74)
+			Button(self.frameOpciones, text= "VER SALDOS", command=self.interfazSaldos).place(relx=0.80, rely=0.74)
 
 
 	
