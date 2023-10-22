@@ -259,8 +259,9 @@ class InterfazPrincipal:
 
 			@conexiones.decoradorBaseDatos3
 			def listaCodigos(*args, **kwargs):
-				
+
 				# ?Implementar buscador
+				# *se pueda reordenar por criterio de c/uno de los campos (CODIGO, NOMBRE, MARCA)
 				cursor = kwargs["cursor"]
 				conexion = kwargs["conexion"]
 				cursor.execute("SELECT CODIGO, ARTICULO, MARCA FROM INVENTARIO ORDER BY CODIGO")
@@ -294,7 +295,7 @@ class InterfazPrincipal:
 			self.boolClienteNuevo = BooleanVar()
 
 			# Boton lista códigos
-			lista = Image.open("lista.png")
+			lista = Image.open("iconos/lista.png")
 			lista.thumbnail((20, 20)) 
 			self.icon_lista = ImageTk.PhotoImage(lista)
 
@@ -1174,11 +1175,11 @@ class InterfazPrincipal:
 
 
 		# ICONOS
-		mas = Image.open("mas.png")
+		mas = Image.open("iconos/mas.png")
 		mas.thumbnail((20, 20)) 
 		icon_mas = ImageTk.PhotoImage(mas)
 
-		menos = Image.open("menos.png")
+		menos = Image.open("iconos/menos.png")
 		menos.thumbnail((20, 20))
 		icon_menos = ImageTk.PhotoImage(menos)
 
