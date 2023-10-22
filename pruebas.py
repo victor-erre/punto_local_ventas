@@ -176,7 +176,41 @@ def pruebaDataFrame():
 	if "pruebas" in df1.columns:
 		print("entramos en el condicional")
 	# print(df2.index)	
-pruebaDataFrame()
+# pruebaDataFrame()
+# with open("prueba_metodos_button.txt", "w") as f:
+# 	a = help(tkinter.Button)
+# 	f.write(a)
+# print(help(tkinter.Button))
+# Importa el módulo necesario para redirigir la salida
+# Importar las bibliotecas necesarias
+import tkinter as tk
+from PIL import Image, ImageTk
+
+class MiApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+
+        # Crear un Frame
+        self.frameOpciones = tk.Frame(self)
+        self.frameOpciones.pack()
+
+        # Cargar la imagen y redimensionarla
+        lista = Image.open("lista.png")
+        lista.thumbnail((20, 20))
+        icon_lista = ImageTk.PhotoImage(lista)
+
+        # Crear un botón con la imagen y la función de comando
+        btnLista = tk.Button(self.frameOpciones, text="pureba", command=self.mostrar_lista_codigos)
+        btnLista.place(relx=0.2, rely=0.07)
+
+    def mostrar_lista_codigos(self):
+        # Define la función que se ejecutará cuando se haga clic en el botón
+        print("Mostrar lista Codigos")
+
+if __name__ == '__main__':
+    app = MiApp()
+    app.mainloop()
+
 
 def pruebaSeries():
 
