@@ -207,6 +207,7 @@ def borrarBBDD(ruta):
 
 # ++++++++++++++++++++++++++++    INSTRUCCIÓN DE PRUEBA      +++++++++++++++++++++++++++++++++++++++++++
 
+print("hola")
 # borrarBBDD("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_{}.db".format(datetime.date.today().strftime('%B').upper()))
 # borrarTablas()	
 

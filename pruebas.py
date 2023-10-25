@@ -166,9 +166,10 @@ def pruebaDataFrame():
 	df2 = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
 
 	df1 = pandas.concat([df1, df2])
-	# for llave, valor in df1.iterrows():
-	# 	print(llave)
-	# 	print(valor.loc["edad"])
+	for llave, valor in df2.iterrows():
+		valor2 = valor.tolist()
+		print(valor2)
+		print(type(valor2))
 	print(df1)
 	if "nombre" in df1.columns:
 		df1 = df1.drop("nombre", axis=1)
@@ -176,13 +177,9 @@ def pruebaDataFrame():
 	if "pruebas" in df1.columns:
 		print("entramos en el condicional")
 	# print(df2.index)	
-# pruebaDataFrame()
-# with open("prueba_metodos_button.txt", "w") as f:
-# 	a = help(tkinter.Button)
-# 	f.write(a)
-# print(help(tkinter.Button))
-# Importa el módulo necesario para redirigir la salida
-# Importar las bibliotecas necesarias
+
+pruebaDataFrame()
+
 import tkinter as tk
 from PIL import Image, ImageTk
 
@@ -207,9 +204,9 @@ class MiApp(tk.Tk):
         # Define la función que se ejecutará cuando se haga clic en el botón
         print("Mostrar lista Codigos")
 
-if __name__ == '__main__':
-    app = MiApp()
-    app.mainloop()
+# if __name__ == '__main__':
+#     app = MiApp()
+#     app.mainloop()
 
 
 def pruebaSeries():
@@ -430,5 +427,3 @@ def extractoBancolombia():
 # a = diccionario.pop("letras", "equivocado")
 # print(diccionario)
 # print(a)
-
-# help(diccionario)

@@ -175,11 +175,12 @@ class InterfazPrincipal:
 		# +++ MANEJO ATAJOS Y EVENTOS INTERFAZ PPAL:
 
 		self.raiz.bind("<Escape>", lambda _ : self.raiz.destroy())
-		self.raiz.bind("<Control-z>", lambda _ : self.menuOperacion.current(0))
-		self.raiz.bind("<Control-x>", lambda _ : self.menuOperacion.current(1))
-		self.raiz.bind("<Control-c>", lambda _ : self.menuOperacion.current(2))
-		self.raiz.bind("<Control-v>", lambda _ : self.menuOperacion.current(3))
-		self.raiz.bind("<Control-b>", lambda _ : self.menuOperacion.current(4))
+		# self.raiz.bind("<Control-z>", lambda _ : self.menuOperacion.current(0))
+		# self.raiz.bind("<Control-x>", lambda _ : self.menuOperacion.current(1))
+		# self.raiz.bind("<Control-c>", lambda _ : self.menuOperacion.current(2))
+		# self.raiz.bind("<Control-v>", lambda _ : self.menuOperacion.current(3))
+		# self.raiz.bind("<Control-b>", lambda _ : self.menuOperacion.current(4))
+		self.raiz.bind("<Control-f>", lambda _ : self.compra(_))
 		self.menuOperacion.bind("<<ComboboxSelected>>",lambda _:self.cambioOpcion(_))
 
 		self.menuOperacion.current(2)
@@ -259,14 +260,33 @@ class InterfazPrincipal:
 
 			@conexiones.decoradorBaseDatos3
 			def listaCodigos(*args, **kwargs):
+				"""
+				Toplevel que contiene los códigos, nombres y marcas de los productos que hay en el negocio
+				"""
+				# ?Implementar una buscador
 
-				# ?Implementar buscador
-				# *se pueda reordenar por criterio de c/uno de los campos (CODIGO, NOMBRE, MARCA)
+				def organizar(tipo):
+					"""
+					Organizar el listado de acuerdo con la interacción del cliente
+					"""
+					arbolLista.delete(*arbolLista.get_children())
+					if tipo=="CODIGO":
+						listado.sort_values(by="CODIGO", ascending=True, inplace=True)
+					elif tipo=="ARTICULO":
+						listado.sort_values(by="ARTICULO", ascending=True, inplace=True)
+					elif tipo=="MARCA":
+						listado.sort_values(by="MARCA", ascending=True, inplace=True)
+
+					for llave, valor in listado.iterrows():
+						arbolLista.insert("", "end", iid=llave, values=valor.tolist())
+
+
 				cursor = kwargs["cursor"]
 				conexion = kwargs["conexion"]
-				cursor.execute("SELECT CODIGO, ARTICULO, MARCA FROM INVENTARIO ORDER BY CODIGO")
-				listado = cursor.fetchall()
-				
+				cursor.execute("SELECT CODIGO, ARTICULO, MARCA FROM INVENTARIO")
+				listado = pd.DataFrame(data=cursor.fetchall(), columns=("CODIGO", "ARTICULO", "MARCA"))
+				# listado.sort_values(by="CODIGO", ascending=True, inplace=True)
+
 				ventana = Toplevel(self.raiz)
 				ventana.resizable(False, False)
 				ventana.grab_set()
@@ -278,13 +298,13 @@ class InterfazPrincipal:
 				arbolLista.column("ARTICULO", width=10)
 				arbolLista.column("MARCA", width=10)
 
-				arbolLista.heading("CODIGO", text = "CODIGO")
-				arbolLista.heading("ARTICULO", text = "ARTICULO")
-				arbolLista.heading("MARCA", text = "MARCA")
+				arbolLista.heading("CODIGO", text = "CODIGO", command= lambda : organizar("CODIGO"))
+				arbolLista.heading("ARTICULO", text = "ARTICULO", command= lambda : organizar("ARTICULO"))
+				arbolLista.heading("MARCA", text = "MARCA", command= lambda : organizar("MARCA"))
 
 
-				for i in listado:
-					arbolLista.insert("", "end", iid=i[0], values=i)
+				for llave, valor in listado.iterrows():
+					arbolLista.insert("", "end", iid=llave, values=valor.tolist())
 
 			codigoArticulo = StringVar()
 			codigoCliente = StringVar()
@@ -346,6 +366,8 @@ class InterfazPrincipal:
 			Button(self.frameOpciones, text="FINALIZAR COMPRA", command= self.compra).place(relx=0.45, rely=0.74)
 
 			Button(self.frameOpciones, text= "VER SALDOS", command=self.interfazSaldos).place(relx=0.80, rely=0.74)
+
+
 
 
 	
@@ -1007,12 +1029,11 @@ class InterfazPrincipal:
 		INTERFAZ para visualizar y modificar el carrito de compra.
 		"""
 
+		# >Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
+		# ?***Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
 		# ?Cambiar el texto por íconos (que sugieran la acción) en los botones 
-		# ?Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
-		# ?CAMBIAR el label `CODIGO ARTICULO` por un boton, que al seleccionar haga lo mismo que le botón lista_codigos
-		# *Cambiar diseño de: - Label que muestra cantidad de articulos (por diversidad) - Botones aumentar y disminuir Q
+		# *Diseños
 		# *Permitir el ordenamiento por nombre y por saldo total
-		# *Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
 
 		def seleccionArticulo(*args, **kwargs):
 			"""
@@ -1155,6 +1176,8 @@ class InterfazPrincipal:
 			messagebox.showinfo(title = "COMPRA", message = "Compra exitosa por valor de {}".format(lblTotal["text"]), parent=treeVista)
 			interfazArticulos.destroy()
 
+	
+
 		self = args[0]
 		conexion = kwargs["conexion"]
 		cursor = kwargs["cursor"]
@@ -1188,6 +1211,13 @@ class InterfazPrincipal:
 		# BOTONES
 		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
+
+		# lblAdvertencia =Label(interfazArticulos, text="NO HAY MÁS STOCK", fg="red")
+		# lblAdvertencia.place(relx=0.88, rely=0.06)
+		# lblAdvertencia.place_forget()
+
+		# btnAumentar.bind("<Enter>", lambda event : lblAdvertencia.place(relx=0.88, rely=0.06))
+		# btnAumentar.bind("<Leave>", lambda event : lblAdvertencia.place_forget())
 
 		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
 		btnDisminuir.place(relx=0.92, rely=0.16)
