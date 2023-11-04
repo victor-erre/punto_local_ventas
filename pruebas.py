@@ -170,6 +170,7 @@ def pruebaDataFrame():
 		valor2 = valor.tolist()
 		print(valor2)
 		print(type(valor2))
+		
 	print(df1)
 	if "nombre" in df1.columns:
 		df1 = df1.drop("nombre", axis=1)

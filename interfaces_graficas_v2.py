@@ -164,7 +164,7 @@ class InterfazPrincipal:
 		Label(self.raiz, text="PAPELERÍA VALERIA").place(relx=0.5,rely=0.03)
 
 		Label(self.raiz, text="OPERACIÓN").place(relx=0.05, rely=0.12)
-		self.menuOperacion = ttk.Combobox(self.raiz, values = ["SERVICIO_PUBLICO","RECARGA","COMPRA","ADMINISTRACION", "SALDOS"], state="readonly")
+		self.menuOperacion = ttk.Combobox(self.raiz, values = ["SERVICIO_PUBLICO","RECARGA","COMPRA","ADMINISTRACION"], state="readonly")
 		self.menuOperacion.place(relx=0.5,rely=0.12)
 
 		self.frameOpciones = Frame(self.raiz)
@@ -196,6 +196,8 @@ class InterfazPrincipal:
 		if self.menuOperacion.get()=="COMPRA":
 
 			# *DESACTIVAR EL MODIFICAR, FINALIZAR Y VACIAR CARRITO cuando el carrito esté vacío
+			# *BOTON para ver e imprimir facturas
+			# *CAJA para ingresar con cuanto paga
 
 			# si el check de ´incluir a saldos´ está activo, se agrega el nombre de la persona que va deber
 			@conexiones.decoradorBaseDatos3
@@ -340,6 +342,7 @@ class InterfazPrincipal:
 
 			self.cantidadListaCompra = Label(self.frameOpciones, text = 0, borderwidth=0, font=7)
 			self.cantidadListaCompra.place(relx=0.80, rely=0.02)
+			# self.cantidadListaCompra.bind("")
 
 			self.checkIncluirSaldo = Checkbutton(self.frameOpciones, text = "INCLUIR A SALDO", variable = self.boolAgregarASaldo, onvalue = True, offvalue = False, command=lambda : check("SALDO"))
 			self.checkIncluirSaldo.place(relx=0.05, rely=0.15)
@@ -454,8 +457,8 @@ class InterfazPrincipal:
 		elif self.menuOperacion.get()=="ADMINISTRACION":
 			InterfazAdministrativa(self.raiz)
 
-		elif self.menuOperacion.get() == "SALDOS":
-			self.interfazSaldos()
+		# elif self.menuOperacion.get() == "SALDOS":
+		# 	self.interfazSaldos()
 
 	@conexiones.decoradorBaseDatos3
 	def generarCodigoCliente(*args, **kwargs):
@@ -1032,8 +1035,9 @@ class InterfazPrincipal:
 		# >Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
 		# ?***Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
 		# ?Cambiar el texto por íconos (que sugieran la acción) en los botones 
-		# *Diseños
-		# *Permitir el ordenamiento por nombre y por saldo total
+
+		# *Mejora de diseños
+	
 
 		def seleccionArticulo(*args, **kwargs):
 			"""
@@ -1042,17 +1046,25 @@ class InterfazPrincipal:
 			# print(icon)
 
 			# Debe haber al menos un artículo en la lista de compra
+			
 			if treeVista.get_children():
 
 				# seleccionamos el primero del árbol
 				codigo = treeVista.selection()[0]
 
+
+			
 				# Debe haber más en stock que en el carrito, de lo contrario desactivamos
 				if validacion[codigo][0] == validacion[codigo][1]:
 					btnAumentar["state"]= "disabled"
+					lblAumentar.config(fg= "red")
+
 
 				else:
-					# &Porqué tengo que asignar de nuevo el icon a la imagen
+					# ?Porqué tengo que asignar de nuevo el icono al botón
+
+					# configuramos el color del aviso para que se oculte si hay aún stock, camuflándolo con el fondo 
+					lblAumentar.config(fg= "gray")
 					btnVaciarCarrito["state"] = "normal"
 					btnAumentar["state"] = "normal"
 					btnAumentar["image"] = icon_mas
@@ -1109,11 +1121,15 @@ class InterfazPrincipal:
 			self.listaCompra.drop(self.listaCompra.index, inplace=True)
 			self.cantidadListaCompra.config(text=0)	
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(0)
+			# seleccionArticulo()
 			btnAumentar["state"]="disabled"
 			btnDisminuir["state"]="disabled"
 			btnVaciarCarrito["state"] = "disabled"
 			btnEliminarSeleccion["state"] = "disabled"
 			btnComprarCarrito["state"] = "disabled"
+			lblAumentar.config(fg= "gray")
+			interfazArticulos.destroy()
+
 
 		def modificarCantidad(tipo):
 			"""
@@ -1147,7 +1163,6 @@ class InterfazPrincipal:
 						# eliminar del diccionario validación y del carrito
 						validacion.pop(codigo)
 						self.listaCompra.drop(codigo, inplace=True)
-						# *actualizar la vista sin el artículo eliminado
 						# vaciarCarrito() if len(self.listaCompra) == 0 else actualizarVista()
 						actualizarVista()
 						return
@@ -1172,6 +1187,7 @@ class InterfazPrincipal:
 			actualizarVista()
 
 		def comprarInterfaz():
+			# ?QUE salga tambien la sgte pregunta en la interfaz 
 			self.compra()
 			messagebox.showinfo(title = "COMPRA", message = "Compra exitosa por valor de {}".format(lblTotal["text"]), parent=treeVista)
 			interfazArticulos.destroy()
@@ -1208,7 +1224,13 @@ class InterfazPrincipal:
 
 
 
-		# BOTONES
+		# BOTONES Y LABEL'S
+
+		# *DEBE ser el color del fondo exactamente, y modificarlo en el método <seleccionArticulo>
+		lblAumentar = Label(interfazArticulos, text="NO HAY\n STOCK", fg="gray")
+		lblAumentar.place(relx= 0.88, rely=0.00)
+		
+
 		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
 
@@ -1251,6 +1273,7 @@ class InterfazPrincipal:
 		treeVista.heading("CANTIDAD", text = "CANTIDAD")
 		treeVista.heading("TOTAL", text = "TOTAL")
 
+		
 		actualizarVista()
 
 		codigos = self.listaCompra.index.tolist()
@@ -1289,7 +1312,8 @@ class InterfazPrincipal:
 		self = args[0]
 		cursor = kwargs["cursor"]
 		conexion = kwargs["conexion"]
-		# *Incluir boton para descuentos a la venta general
+
+		# ***POTTER: Incluir boton para descuentos a la venta general
 
 		# if self.menuOperacion.current()==0 or self.menuOperacion.current() ==1:
 		# 	self.ejecutar()
@@ -1368,7 +1392,7 @@ class InterfazPrincipal:
 
 					else:
 						cursor.execute("SELECT FACTURA FROM VENTAS ORDER BY FACTURA DESC")
-						codigo_sgte = cursor.fetchone()[0]+1
+						codigo_sgte = int(cursor.fetchone()[0])+1
 
 						# verificamos si hay comentario, si lo hay le agregamos la fecha:
 						if len(str(self.txtComentarioCliente.get("1.0", "end")).replace("\n","")) >= 4:
