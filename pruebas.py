@@ -70,9 +70,26 @@ def tkinterTreeview():
 			arbol.insert(nombre[i], tkinter.END, text="prueba"+str(i), values = [0, 1, 2])
 		arbol.pack(fill=tkinter.BOTH, expand=True)
 
+	def validarNumero(elemento):
+		print(elemento)
+		if elemento=="" or elemento.isalpha() and len(elemento)<11:
+			# vbleControl.set(elemento)
+			etiqueta["text"] = elemento
+			return True
+		else:
+			return False
+
 	raiz = tkinter.Tk()
+	vbleControl = tkinter.StringVar()
+	etiqueta = tkinter.Label(raiz, text = "", bg = "red")
+	etiqueta.pack()
+	entrada = tkinter.Entry(raiz, width=30, bg="gray", textvariable=vbleControl)
+	entrada.config(validate = "key" ,validatecommand = (entrada.register(validarNumero), '%P'))
+	# entrada.config(validate = "key", validatecommand = (entrada.register(validarNumero), '%P'))
+	entrada.pack()
 	raiz.geometry("600x600")
 	arbol = ttk.Treeview(raiz, columns=("COLOR", "CANTIDAD", "PRECIO"), selectmode=tkinter.BROWSE)
+
 
 	arbol.tag_bind("seleccion_item", "<<TreeviewSelect>>", seleccion)
 
@@ -96,6 +113,17 @@ def tkinterTreeview():
 	tkinter.Button(raiz, width = 12, text= "REINICIAR TREEVIEW", command=borrarElementos).pack()
 
 	raiz.mainloop()
+
+# tkinterTreeview()
+# import re
+
+# texto = "Mi dirección de correo es ejemplo@email.com y otra dirección es otra@example.com"
+# patron = r'\w+@\w+\.\w+'
+
+# coincidencias = re.findall(patron, texto)
+# for coincidencia in coincidencias:
+#     print(coincidencia)
+print(["a","b","c","d","e"][1:])
 # tkinterTreeview()
 # import tkinter as tk
 # from tkinter import ttk
@@ -179,7 +207,7 @@ def pruebaDataFrame():
 		print("entramos en el condicional")
 	# print(df2.index)	
 
-pruebaDataFrame()
+# pruebaDataFrame()
 
 import tkinter as tk
 from PIL import Image, ImageTk
@@ -318,95 +346,6 @@ def funcionPrueba( var1, var2, *args, **kwargs):
 	return 
 
 
-# def anhadirArticulo():
-
-# 	def agregarArticulo(articulo, listaCompra):
-# 		if articulo["CANTIDAD_STOCK"] > 0:
-
-# 			indice_lista = [False,0]
-
-# 			for i in range(len(listaCompra)):
-# 				if listaCompra.loc[i,"CODIGO"] == articulo["CODIGO"]:
-# 					indice_lista[0] = True
-# 					indice_lista[1] = i
-# 					break
-
-
-# 			if indice_lista[0]:
-
-# 				if articulo["CANTIDAD_STOCK"] >= (listaCompra.loc[indice_lista[1],"CANTIDAD_COMPRA"]+1):
-					
-# 					articulo_modificar = listaCompra.iloc[indice_lista[1],:]
-# 					pd.options.mode.chained_assignment = None
-
-# 					articulo_modificar["CANTIDAD_COMPRA"] += 1
-
-# 					articulo_modificar["SUB_TOTAL"] = articulo_modificar["PRECIO_UNIT"] * articulo_modificar["CANTIDAD_COMPRA"]
-# 					articulo_modificar["UTILIDAD"] = int(articulo_modificar["UTILIDAD"]/(articulo_modificar["CANTIDAD_COMPRA"]-1)*articulo_modificar["CANTIDAD_COMPRA"])
-# 					listaCompra.loc[indice_lista[1], ["CODIGO", "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
-# 					print(listaCompra)
-# 				else:
-# 					messagebox.showwarning(title = "STOCK AGOTADO", message = f"No hay unidades de {articulo[1].upper()} disponibles.")
-					
-			
-# 			else:
-
-# 				articulo = pandas.concat([articulo, pandas.Series(data = [articulo["PRECIO_UNIT"]], index = ["SUB_TOTAL"], name= articulo.name)])
-# 				articulo = articulo.reindex(["NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "SUB_TOTAL", "UTILIDAD"])
-
-# 				articulo.index = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"] 
-
-# 				articulo.at["CANTIDAD_COMPRA"]=1
-
-# 				df_articulo = articulo.to_frame().T
-# 				df_articulo.index = [articulo.name]
-# 				listaCompra = pandas.concat([listaCompra, df_articulo], axis= 0, ignore_index=False)
-
-# 				cantidadListaCompra.config(text=len(listaCompra))
-# 		else:
-
-# 			messagebox.showwarning(title="PROBLEMA", message= f"No hay {articulo.loc['NOMBRE']} en stock.")
-
-# 		codigo.delete(0, "end")
-# 		return listaCompra
-
-# 	def enviarCodigo():
-# 		global listaCompra
-
-# 		cursor.execute("SELECT CODIGO, NOMBRE, PRECIO, CANTIDAD, UTILIDAD FROM INVENTARIO_PAPELERIA WHERE CODIGO = (?)", (vlrCodigo.get().upper(), ))
-
-# 		articulo = cursor.fetchone()
-# 		conexion.commit()
-# 		articulo = pandas.Series(data = articulo[1:], name = articulo[0], index = [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_STOCK", "UTILIDAD"])
-# 		if not isinstance(articulo.loc["NOMBRE"],numpy.float64): 
-# 			ok = agregarArticulo(articulo, listaCompra) 
-# 			listaCompra = ok
-# 			print(listaCompra)
-# 		else:
-# 			messagebox.showwarning(title= "ERROR", message= f"No existe artículo con ese código.")
-			
-# 	raiz = tkinter.Tk()
-# 	raiz.geometry("300x300")
-
-# 	conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
-# 	cursor = conexion.cursor()
-
-# 	vlrCodigo = tkinter.StringVar()
-
-# 	cantidadListaCompra = tkinter.Label(raiz)
-# 	cantidadListaCompra.pack()
-
-# 	listaCompra = pandas.DataFrame(columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"])
-
-
-# 	codigo = tkinter.Entry(raiz, width=19, textvariable = vlrCodigo)
-# 	codigo.pack()
-# 	btn = tkinter.Button(raiz, text = "enviar", command=enviarCodigo)
-# 	btn.pack()
-
-# 	raiz.mainloop()
-
-# anhadirArticulo()
 
 def extractoBancolombia():
 

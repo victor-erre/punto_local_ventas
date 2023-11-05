@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy
 import locale
+import re
 	
 # Asignamos la hora del sistema en hora local
 locale.setlocale(locale.LC_TIME, 'es_ES.utf8')
@@ -117,7 +118,6 @@ class Validaciones:
 			return False
 
 	def codigoServicio(self, codigo):
-
 		if codigo=="" or codigo.isdigit() and len(codigo)<11:
 			return True
 
@@ -195,7 +195,7 @@ class InterfazPrincipal:
 
 		if self.menuOperacion.get()=="COMPRA":
 
-			# *DESACTIVAR EL MODIFICAR, FINALIZAR Y VACIAR CARRITO cuando el carrito esté vacío
+			# *BLOQUEAR botones ~VER CARRITO, FINALIZAR COMPRA, VACIAR CARRITO~ cuando no haya articulos que comprar
 			# *BOTON para ver e imprimir facturas
 			# *CAJA para ingresar con cuanto paga
 
@@ -273,11 +273,13 @@ class InterfazPrincipal:
 					"""
 					arbolLista.delete(*arbolLista.get_children())
 					if tipo=="CODIGO":
-						listado.sort_values(by="CODIGO", ascending=True, inplace=True)
+						listado.sort_values(by="CODIGO", inplace=True)
 					elif tipo=="ARTICULO":
 						listado.sort_values(by="ARTICULO", ascending=True, inplace=True)
 					elif tipo=="MARCA":
 						listado.sort_values(by="MARCA", ascending=True, inplace=True)
+					elif tipo=="STOCK":
+						listado.sort_values(by="STOCK", ascending=True, inplace=True)
 
 					for llave, valor in listado.iterrows():
 						arbolLista.insert("", "end", iid=llave, values=valor.tolist())
@@ -285,24 +287,25 @@ class InterfazPrincipal:
 
 				cursor = kwargs["cursor"]
 				conexion = kwargs["conexion"]
-				cursor.execute("SELECT CODIGO, ARTICULO, MARCA FROM INVENTARIO")
-				listado = pd.DataFrame(data=cursor.fetchall(), columns=("CODIGO", "ARTICULO", "MARCA"))
+				cursor.execute("SELECT CODIGO, ARTICULO, MARCA, STOCK FROM INVENTARIO")
+				listado = pd.DataFrame(data=cursor.fetchall(), columns=("CODIGO", "ARTICULO", "MARCA", "STOCK"))
 				# listado.sort_values(by="CODIGO", ascending=True, inplace=True)
-
-				ventana = Toplevel(self.raiz)
+				ventana = Toplevel(self.raiz)		
 				ventana.resizable(False, False)
 				ventana.grab_set()
-				arbolLista = ttk.Treeview(ventana, columns=["CODIGO", "ARTICULO", "MARCA"], selectmode = NONE)
+				arbolLista = ttk.Treeview(ventana, columns=["CODIGO", "ARTICULO", "MARCA", "STOCK"], selectmode = NONE)
 				arbolLista.place(relwidth=1, relheight=1)
 
 				arbolLista.column("#0", width=0, stretch=NO)
 				arbolLista.column("CODIGO", width=7)
 				arbolLista.column("ARTICULO", width=10)
 				arbolLista.column("MARCA", width=10)
+				arbolLista.column("STOCK", width=6)
 
 				arbolLista.heading("CODIGO", text = "CODIGO", command= lambda : organizar("CODIGO"))
 				arbolLista.heading("ARTICULO", text = "ARTICULO", command= lambda : organizar("ARTICULO"))
 				arbolLista.heading("MARCA", text = "MARCA", command= lambda : organizar("MARCA"))
+				arbolLista.heading("STOCK", text = "STOCK", command= lambda : organizar("STOCK"))
 
 
 				for llave, valor in listado.iterrows():
@@ -315,6 +318,7 @@ class InterfazPrincipal:
 			# comentario = StringVar()
 			self.boolAgregarASaldo = BooleanVar()
 			self.boolClienteNuevo = BooleanVar()
+			self.cantidadListaCompra = StringVar()
 
 			# Boton lista códigos
 			lista = Image.open("iconos/lista.png")
@@ -342,7 +346,7 @@ class InterfazPrincipal:
 
 			self.cantidadListaCompra = Label(self.frameOpciones, text = 0, borderwidth=0, font=7)
 			self.cantidadListaCompra.place(relx=0.80, rely=0.02)
-			# self.cantidadListaCompra.bind("")
+			# self.cantidadListaCompra.bind("b")
 
 			self.checkIncluirSaldo = Checkbutton(self.frameOpciones, text = "INCLUIR A SALDO", variable = self.boolAgregarASaldo, onvalue = True, offvalue = False, command=lambda : check("SALDO"))
 			self.checkIncluirSaldo.place(relx=0.05, rely=0.15)
@@ -1031,12 +1035,13 @@ class InterfazPrincipal:
 		"""
 		INTERFAZ para visualizar y modificar el carrito de compra.
 		"""
-
-		# >Al posarse sobre el boton aumentar cuando no haya stock me salga una advertencia y se quite cuando ya no se pose sobre el boton
+		# ?Como obtengo el color de fondo y pintar el aviso de ese color
 		# ?***Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
-		# ?Cambiar el texto por íconos (que sugieran la acción) en los botones 
+		# ?*Mejora de diseños
+		# ?*Cambiar el texto por íconos (que sugieran la acción) en los botones 
 
-		# *Mejora de diseños
+		# *cada que escriba una letra buscar coincidencia en el inventario (por medio de treevista)
+
 	
 
 		def seleccionArticulo(*args, **kwargs):
@@ -1192,11 +1197,21 @@ class InterfazPrincipal:
 			messagebox.showinfo(title = "COMPRA", message = "Compra exitosa por valor de {}".format(lblTotal["text"]), parent=treeVista)
 			interfazArticulos.destroy()
 
-	
+		def validarStock(nombre):
+
+			...
+			print("buscando coincidencia con ésta busquedad: {}".format(nombre))
+			if nombre in inventario_total.iloc[:, 0].tolist():
+				print(nombre)
+			return True
+
+		
 
 		self = args[0]
 		conexion = kwargs["conexion"]
 		cursor = kwargs["cursor"]
+
+		busquedad = StringVar()
 
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda event : salir(event))
@@ -1206,7 +1221,11 @@ class InterfazPrincipal:
 		interfazArticulos.geometry("500x500")
 
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
-		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.86)
+		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.8)
+
+		entBusqueda = Entry(interfazArticulos, width=30, textvariable = busquedad)
+		entBusqueda.place(relx=0.17, rely=0.85)
+		entBusqueda.config(validate="key", validatecommand=(entBusqueda.register(validarStock), "%P"))
 
 		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event))
 
@@ -1222,7 +1241,9 @@ class InterfazPrincipal:
 		menos.thumbnail((20, 20))
 		icon_menos = ImageTk.PhotoImage(menos)
 
-
+		lupa = Image.open("iconos/lupa.png")
+		lupa.thumbnail((20, 20))
+		icon_lupa = ImageTk.PhotoImage(lupa)
 
 		# BOTONES Y LABEL'S
 
@@ -1230,6 +1251,9 @@ class InterfazPrincipal:
 		lblAumentar = Label(interfazArticulos, text="NO HAY\n STOCK", fg="gray")
 		lblAumentar.place(relx= 0.88, rely=0.00)
 		
+		# iconLupa = Button(interfazArticulos, image=icon_lupa, borderwidth=0)
+		iconLupa = Button(interfazArticulos, text="icono de\n lupa", borderwidth=0)
+		iconLupa.place(relx=0.04, rely=0.85)
 
 		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
 		btnAumentar.place(relx=0.92, rely=0.08)
@@ -1244,11 +1268,11 @@ class InterfazPrincipal:
 		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
 		btnDisminuir.place(relx=0.92, rely=0.16)
 
-		btnEliminarSeleccion = Button(interfazArticulos, text = "ELIMINAR", width= 9, command= eliminarArticulo)
-		btnEliminarSeleccion.place(relx=0.20, rely= 0.92)
-
 		btnComprarCarrito = Button(interfazArticulos, text = "COMPRAR", width= 9, command = comprarInterfaz)
 		btnComprarCarrito.place(relx = 0.04, rely = 0.92)
+
+		btnEliminarSeleccion = Button(interfazArticulos, text = "ELIMINAR", width= 9, command= eliminarArticulo)
+		btnEliminarSeleccion.place(relx=0.20, rely= 0.92)
 
 		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR CARRITO", width = 12, command = vaciarCarrito)
 		btnVaciarCarrito.place(relx= 0.36, rely = 0.92)
@@ -1294,6 +1318,12 @@ class InterfazPrincipal:
 				if llave == i:
 					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
 				continue
+
+		inventario_total = pd.DataFrame(columns=("ARTICULO", "MARCA", "STOCK"))
+		cursor.execute("SELECT CODIGO, ARTICULO, MARCA, STOCK FROM INVENTARIO")
+		for i in cursor.fetchall():
+			inventario_total = pd.concat([inventario_total, pd.Series(data = i[1:], index=["ARTICULO", "MARCA", "STOCK"], name=i[0]).to_frame().T], axis=0)
+		print(inventario_total)
 
 
 	# def generarCodigoCliente(self,cursor):
@@ -1717,7 +1747,7 @@ class InterfazAdministrativa(Tk):
 
 
 				cursor.execute("""
-					INSERT INTO INVENTARIO (CODIGO, ARTICULO, MARCA, CANTIDAD, PRECIO, COSTO, COMENTARIO)
+					INSERT INTO INVENTARIO (CODIGO, ARTICULO, MARCA, STOCK, PRECIO, COSTO, COMENTARIO)
 					VALUES (?,?,?,?,?,?,?)
 					""",tuple(articuloNuevo.values))
 				messagebox.showinfo("ARTICULO_NUEVO","Articulo nuevo creado con éxito.")
