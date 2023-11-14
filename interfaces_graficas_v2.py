@@ -18,6 +18,8 @@ import pandas as pd
 import numpy
 import locale
 import re
+
+# SIMBOLOS: ❒▇
 	
 # Asignamos la hora del sistema en hora local
 locale.setlocale(locale.LC_TIME, 'es_ES.utf8')
@@ -1035,12 +1037,15 @@ class InterfazPrincipal:
 		"""
 		INTERFAZ para visualizar y modificar el carrito de compra.
 		"""
-		# ?Como obtengo el color de fondo y pintar el aviso de ese color
-		# ?***Cuando selecciono otra acción general, la lista permanece intacta (¿? Analizar si es bueno o no)
-		# ?*Mejora de diseños
-		# ?*Cambiar el texto por íconos (que sugieran la acción) en los botones 
+		# ?❒❒❒Cuando selecciono otra acción general (cambio de vista), la lista permanece intacta (¿? Analizar si es bueno o no)
+		# ?❒❒❒Mejora de diseños
 
-		# *cada que escriba una letra buscar coincidencia en el inventario (por medio de treevista)
+		# ▇ Cada que escriba una letra buscar coincidencia en el inventario (por medio de treevista)
+		# ?❒ Cambiar el texto por íconos (que sugieran la acción) en los botones 
+		# ?❒ Cuando compro, sea en la general o en vista carrito, es necesario preguntar con cuánto paga
+		# ?❒ Como obtengo el color de fondo (para el aviso de que no hay stock) y pintar el aviso de ese color
+		# ❒ Realizar documentación en funciones
+		# ❒ Analizar la eficiencia de las estructuras de datos en general, necesidad de uso y eficiencia de funciones
 
 	
 
@@ -1048,22 +1053,20 @@ class InterfazPrincipal:
 			"""
 			HABILITACIÓN botones, al seleccionar (manual o automáticamente) desde la interfaz de modificación
 			"""
-			# print(icon)
 
 			# Debe haber al menos un artículo en la lista de compra
 			
 			if treeVista.get_children():
 
-				# seleccionamos el primero del árbol
+				if not treeVista.selection():
+					treeVista.selection_set(treeVista.get_children()[-1])
+
 				codigo = treeVista.selection()[0]
-
-
 			
 				# Debe haber más en stock que en el carrito, de lo contrario desactivamos
 				if validacion[codigo][0] == validacion[codigo][1]:
 					btnAumentar["state"]= "disabled"
 					lblAumentar.config(fg= "red")
-
 
 				else:
 					# ?Porqué tengo que asignar de nuevo el icono al botón
@@ -1082,14 +1085,30 @@ class InterfazPrincipal:
 
 		def salir(event):
 
-			# ?Necesario éste método (recordar que el método global está envuelto en el decorador que abre y cierra la BBDD)
-			# *funcione tanto al seleccionar el boton de salir de la aplicación como con ESC
+			# ?❒Necesario éste método (recordar que el método global está envuelto en el decorador que abre y cierra la BBDD)
+			# ❒funcione tanto al seleccionar el boton de salir de la aplicación como con ESC
 
 			print("chao")
 			conexion.commit()
 			cursor.close()
 			conexion.close()
 			interfazArticulos.destroy()
+
+		# def actualizarVistaInterfaz(*args):
+
+		# 	# ▇ Incluir ésta vista como condicional de la de abajo
+
+		# 	treeVista.delete(*treeVista.get_children())
+
+		# 	# AGREGAR el carrito al listado
+		# 	contador = 1
+		# 	for indice in self.listaCompra.index.tolist():
+		# 		treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
+		# 		contador += 1
+
+		# 	# ACTUALIZAR el valor total del carrito y la cantidad de articulos (por diversidad)
+		# 	lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum())
+		# 	self.cantidadListaCompra.config(text=len(self.listaCompra))
 
 		def actualizarVista(*args):
 
@@ -1115,9 +1134,8 @@ class InterfazPrincipal:
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum()) 
 			self.cantidadListaCompra.config(text=len(self.listaCompra))
 
-			# SELECCIONAR (automácticamente) el primer artículo del listado
-			treeVista.selection_set(treeVista.get_children()[0])
-
+			# SELECCIONAR (automácticamente) el primer artículo o si se agregó desde la entrada, entonces ese artículo
+			treeVista.selection_set(treeVista.get_children()[0]) if not args else treeVista.selection_set(treeVista.get_children()[-1])
 
 		def vaciarCarrito():
 
@@ -1198,20 +1216,47 @@ class InterfazPrincipal:
 			interfazArticulos.destroy()
 
 		def validarStock(nombre):
+			
+			# ❒ Ajustar medidas del treeSugerencia (ocupe el mismo ancho que la entrada y distribuir mejor ambas columnas, ademas de la altura)
 
-			...
-			print("buscando coincidencia con ésta busquedad: {}".format(nombre))
-			if nombre in inventario_total.iloc[:, 0].tolist():
-				print(nombre)
+			treeSugerencia.delete(*treeSugerencia.get_children())
+			self.dfSugerencia.drop(self.dfSugerencia.index, inplace=True)
+			# print("buscando coincidencia con ésta busquedad: {}, cantidad: {}, tipo: {}".format(nombre,len(nombre),type(nombre)))
+			if nombre != "":
+				# print("dentro condicional")
+				for llave, valor in inventario_total.iterrows():
+					if re.search(nombre.upper(), valor.at["ARTICULO"]) and (not llave in self.listaCompra.index):
+						self.dfSugerencia = pd.concat([self.dfSugerencia, valor.to_frame().T])
+						treeSugerencia.insert("", "end", iid = llave, values = valor.tolist())
+				if len(self.dfSugerencia) != 0:
+					treeSugerencia.place(relx=0.17, rely=0.16, relwidth=.28, relheight=.15)
+				# print("final condicional")
+
+			if len(self.dfSugerencia) == 0:
+				treeSugerencia.place_forget()
+
+				
 			return True
 
-		
+		@conexiones.decoradorBaseDatos3
+		def seleccionSugerencia(*args, **kwargs):
+			if len(busqueda.get()) != 0:
+				codigoNuevo = treeSugerencia.selection()[0].upper()
+				self.anhadirArticulo(codigoNuevo)
+				kwargs["cursor"].execute("SELECT STOCK FROM INVENTARIO WHERE CODIGO = (?)", (codigoNuevo,))
+				cantidad_stock = kwargs["cursor"].fetchone()[0]
+				# FORMATO: validacion = { "codigo_articulo" : [cantidad_STOCK, cantidad_CARRITO]}
+				validacion.update({codigoNuevo: [cantidad_stock, 1]})
+				actualizarVista("SUGERENCIA")
+				# actualizarVistaInterfaz()
+				entBusqueda.delete(0, "end")
+
 
 		self = args[0]
 		conexion = kwargs["conexion"]
 		cursor = kwargs["cursor"]
 
-		busquedad = StringVar()
+		busqueda = StringVar()
 
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda event : salir(event))
@@ -1221,13 +1266,26 @@ class InterfazPrincipal:
 		interfazArticulos.geometry("500x500")
 
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
-		treeVista.place(relx=0.02, relwidth=0.85, rely=0.02, relheight= 0.8)
-
-		entBusqueda = Entry(interfazArticulos, width=30, textvariable = busquedad)
-		entBusqueda.place(relx=0.17, rely=0.85)
-		entBusqueda.config(validate="key", validatecommand=(entBusqueda.register(validarStock), "%P"))
-
+		treeVista.place(relx=0.02, relwidth=0.85, rely=0.18, relheight= 0.8)
 		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event))
+		
+		self.dfSugerencia = pd.DataFrame(columns=("ARTICULO", "MARCA"))
+
+		# CREACION lista de sugerencias
+		treeSugerencia = ttk.Treeview(interfazArticulos, columns= ("ARTICULO", "MARCA"), selectmode=BROWSE, show="tree")
+
+		treeSugerencia.bind("<<TreeviewSelect>>", lambda event:seleccionSugerencia(event))
+
+		treeSugerencia.column("#0", width=0, stretch=NO)
+		treeSugerencia.column("ARTICULO", anchor = "center", width=65, stretch=NO)
+		treeSugerencia.column("MARCA",anchor = "center", width=65, stretch=NO)
+		# treeSugerencia.column("CARACTERISTICA",width=0,anchor = "center", stretch="yes")
+
+		treeSugerencia.heading("ARTICULO", text="ARTICULO")
+		treeSugerencia.heading("MARCA", text="MARCA")
+		# treeSugerenia.heading("CARACTERISTICA", text="CARACTERISTICA")
+
+
 
 		# Label(interfazArticulos, text = "CANTIDAD", width = 9).place(relx=0.88, rely=0.02)
 
@@ -1247,16 +1305,23 @@ class InterfazPrincipal:
 
 		# BOTONES Y LABEL'S
 
+		# iconLupa = Button(interfazArticulos, imaage=icon_lupa, borderwidth=0)
+		iconLupa = Button(interfazArticulos, text="icono de\n lupa", borderwidth=0)
+		iconLupa.place(relx=0.04, rely=0.12)
+
+		entBusqueda = Entry(interfazArticulos, width=30, textvariable = busqueda)
+		entBusqueda.place(relx=0.17, rely=0.12)
+		entBusqueda.config(validate="key", validatecommand=(entBusqueda.register(validarStock), "%P"))
+
 		# *DEBE ser el color del fondo exactamente, y modificarlo en el método <seleccionArticulo>
 		lblAumentar = Label(interfazArticulos, text="NO HAY\n STOCK", fg="gray")
-		lblAumentar.place(relx= 0.88, rely=0.00)
-		
-		# iconLupa = Button(interfazArticulos, image=icon_lupa, borderwidth=0)
-		iconLupa = Button(interfazArticulos, text="icono de\n lupa", borderwidth=0)
-		iconLupa.place(relx=0.04, rely=0.85)
+		lblAumentar.place(relx= 0.88, rely=0.16)
 
 		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
-		btnAumentar.place(relx=0.92, rely=0.08)
+		btnAumentar.place(relx=0.92, rely=0.24)
+
+		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
+		btnDisminuir.place(relx=0.92, rely=0.32)
 
 		# lblAdvertencia =Label(interfazArticulos, text="NO HAY MÁS STOCK", fg="red")
 		# lblAdvertencia.place(relx=0.88, rely=0.06)
@@ -1265,22 +1330,20 @@ class InterfazPrincipal:
 		# btnAumentar.bind("<Enter>", lambda event : lblAdvertencia.place(relx=0.88, rely=0.06))
 		# btnAumentar.bind("<Leave>", lambda event : lblAdvertencia.place_forget())
 
-		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
-		btnDisminuir.place(relx=0.92, rely=0.16)
 
 		btnComprarCarrito = Button(interfazArticulos, text = "COMPRAR", width= 9, command = comprarInterfaz)
-		btnComprarCarrito.place(relx = 0.04, rely = 0.92)
+		btnComprarCarrito.place(relx = 0.04, rely = 0.03)
 
 		btnEliminarSeleccion = Button(interfazArticulos, text = "ELIMINAR", width= 9, command= eliminarArticulo)
-		btnEliminarSeleccion.place(relx=0.20, rely= 0.92)
+		btnEliminarSeleccion.place(relx=0.20, rely= 0.03)
 
 		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR CARRITO", width = 12, command = vaciarCarrito)
-		btnVaciarCarrito.place(relx= 0.36, rely = 0.92)
+		btnVaciarCarrito.place(relx= 0.36, rely = 0.03)
 
-		Label(interfazArticulos, text = "TOTAL:", width = 10).place(relx = 0.60, rely = 0.92)
+		Label(interfazArticulos, text = "TOTAL:", width = 10).place(relx = 0.60, rely = 0.03)
 
 		lblTotal = Label(interfazArticulos)
-		lblTotal.place(relx = 0.77, rely = 0.92)
+		lblTotal.place(relx = 0.77, rely = 0.03)
 
 		treeVista.column("#0", width=0, stretch=NO)
 		treeVista.column("ITEM", width = 10, anchor = "center")
@@ -1307,9 +1370,11 @@ class InterfazPrincipal:
 		# ...y la cantidad_CARRITO para trabajar con esos datos en los métodos locales
 
 		# Diccionario con el stock de la BBDD
+		# inventario = {codigo_articulo: stock_inventario}
 		inventario = {}
 		for i in cursor.fetchall():
 			inventario.update({i[0]:i[1]})
+
 
 		# FORMATO: validacion = { "codigo_articulo" : [cantidad_STOCK, cantidad_CARRITO]}
 		validacion = {}
@@ -1323,7 +1388,7 @@ class InterfazPrincipal:
 		cursor.execute("SELECT CODIGO, ARTICULO, MARCA, STOCK FROM INVENTARIO")
 		for i in cursor.fetchall():
 			inventario_total = pd.concat([inventario_total, pd.Series(data = i[1:], index=["ARTICULO", "MARCA", "STOCK"], name=i[0]).to_frame().T], axis=0)
-		print(inventario_total)
+		# print(inventario_total)
 
 
 	# def generarCodigoCliente(self,cursor):

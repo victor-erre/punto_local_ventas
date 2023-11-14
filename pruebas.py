@@ -1,13 +1,16 @@
-import tkinter
+import tkinter as tk
 from tkinter import ttk
 import random
-import pandas
+import pandas as pd
 import sqlite3
 # import time
 import datetime
 import numpy
 import calendar
 import locale
+import re
+from PIL import Image, ImageTk
+
 
 def conexionProyecto():
 	# conexion = sqlite3.connect("C:/Users/Victo/Documents/programacion/proyectos_propios/punto_local_ventas/BASE_DATOS_PRUEBA.db")
@@ -114,8 +117,7 @@ def tkinterTreeview():
 
 	raiz.mainloop()
 
-# tkinterTreeview()
-# import re
+
 
 # texto = "Mi dirección de correo es ejemplo@email.com y otra dirección es otra@example.com"
 # patron = r'\w+@\w+\.\w+'
@@ -123,10 +125,8 @@ def tkinterTreeview():
 # coincidencias = re.findall(patron, texto)
 # for coincidencia in coincidencias:
 #     print(coincidencia)
-print(["a","b","c","d","e"][1:])
 # tkinterTreeview()
-# import tkinter as tk
-# from tkinter import ttk
+
 
 # def identificar_elemento(event):
 #     item_id = tree.identify("item", event.x, event.y)
@@ -155,10 +155,6 @@ print(["a","b","c","d","e"][1:])
 # root.mainloop()
 
 
-import tkinter as tk
-import pandas as pd
-from tkinter import ttk
-
 def actualizar_celda(event):
     # Obtener la fila y la columna de la celda editada
     fila, columna = treeview.index(treeview.focus()), treeview.identify_column(event.x)
@@ -185,32 +181,32 @@ def funcionLambda():
 
 def pruebaDataFrame():
 
-	nombres = ["victor", "idaly", "jeffrey"]
-	apellidos = ["ruiz", "lopez", "quiñonez"]
-	edades = [25, 64, 35]
-	residencias = ["palmira", "cali", "pereira"]
+	nombres = ["victor", "idaly", "jeffrey", "hector"]
+	apellidos = ["ruiz", "lopez", "quiñonez", "perea"]
+	edades = [25, 64, 35, 54]
+	residencias = ["palmira", "cali", "pereira", "quiddo"]
 
-	df1 = pandas.DataFrame(columns = ["nombre", "apellido", "edad", "residencia"])
-	df2 = pandas.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
+	df1 = pd.DataFrame(columns = ["nombre", "apellido", "edad", "residencia"])
+	df2 = pd.DataFrame(data =[[nombres[i], apellidos[i], edades[i], residencias[i]] for i in range(len(nombres))],columns=("nombre", "apellido", "edad", "residencia"), index=[f"Elemento {i}" for i in range(1,len(nombres)+1)])
 
-	df1 = pandas.concat([df1, df2])
-	for llave, valor in df2.iterrows():
-		valor2 = valor.tolist()
-		print(valor2)
-		print(type(valor2))
+	df1 = pd.concat([df1, df2])
+
+	for i, j in df1.iterrows():
+		if re.search("ct", j.at["nombre"]):
+			print(i,j, sep="\n++++++\n", end="\n\n")
+
 		
-	print(df1)
-	if "nombre" in df1.columns:
-		df1 = df1.drop("nombre", axis=1)
-	print(df1)
-	if "pruebas" in df1.columns:
-		print("entramos en el condicional")
+	# print(df1)
+	# if "nombre" in df1.columns:
+	# 	df1 = df1.drop("nombre", axis=1)
+	# print(df1)
+	# if "pruebas" in df1.columns:
+	# 	print("entramos en el condicional")
 	# print(df2.index)	
 
 # pruebaDataFrame()
 
-import tkinter as tk
-from PIL import Image, ImageTk
+
 
 class MiApp(tk.Tk):
     def __init__(self):
@@ -362,8 +358,23 @@ def extractoBancolombia():
 			# print(tipo, "--->>",type(tipo))
 			suma+=float(i.replace(".00", "").replace(",", ""))
 
-# diccionario = {"letra":["a", "b", "c"], "codigo":["pri", "herma", "tio"]}
-# # print(diccionario)
-# a = diccionario.pop("letras", "equivocado")
-# print(diccionario)
-# print(a)
+
+import tkinter as tk
+from tkinter import ttk
+
+def actualizar_treeview():
+    # Borrar todas las filas existentes en el Treeview
+    for row in tree.get_children():
+        tree.delete(row)
+
+    # Insertar las filas actualizadas
+    for elemento in elementos_lista:
+        tree.insert("", "end", values=(elemento,))
+
+# Función para manejar eventos de modificación de la lista
+def modificar_lista():
+    # Aquí puedes modificar la lista según las necesidades del usuario
+    # Por ejemplo, agregar o eliminar elementos
+    elementos_lista.append("Nuevo Elemento")
+    actualizar_treeview()
+
