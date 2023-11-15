@@ -358,23 +358,11 @@ def extractoBancolombia():
 			# print(tipo, "--->>",type(tipo))
 			suma+=float(i.replace(".00", "").replace(",", ""))
 
-
-import tkinter as tk
-from tkinter import ttk
-
-def actualizar_treeview():
-    # Borrar todas las filas existentes en el Treeview
-    for row in tree.get_children():
-        tree.delete(row)
-
-    # Insertar las filas actualizadas
-    for elemento in elementos_lista:
-        tree.insert("", "end", values=(elemento,))
-
-# Función para manejar eventos de modificación de la lista
-def modificar_lista():
-    # Aquí puedes modificar la lista según las necesidades del usuario
-    # Por ejemplo, agregar o eliminar elementos
-    elementos_lista.append("Nuevo Elemento")
-    actualizar_treeview()
-
+lista = [("hola", "como", "estas"), ("enserio", "no", "digas"), ("ahora", "si", "¿va?")]
+# lista[0] = list(lista[0])
+# lista[0].append("?")
+# lista[0] = tuple(lista[0])
+# print(lista)
+for i in range(len(lista)):
+	lista[i] = list(lista[i])
+print(lista)

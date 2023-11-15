@@ -152,6 +152,8 @@ class InterfazPrincipal:
 		self.validaciones = Validaciones()
 		self.conversiones = Conversiones()
 		self.crearWidgets()
+		# self.anhadirArticulo("PA001")
+		# self.modificarArticulo()
 		self.raiz.mainloop()
 
 	def crearWidgets(self):
@@ -985,23 +987,23 @@ class InterfazPrincipal:
 			# COMPROBACIÓN: presencia en el carrito de compras.
 			if articulo.name in self.listaCompra.index.tolist():
 
-					if articulo["CANTIDAD_STOCK"] >= (self.listaCompra.at[articulo.name,"CANTIDAD_COMPRA"]+1):
-						
-						# copiar la información del articulo a modificar.
-						articulo_modificar = self.listaCompra.loc[articulo.name,:]
+				if articulo["CANTIDAD_STOCK"] > (self.listaCompra.loc[articulo.name,"CANTIDAD_COMPRA"]):
+					
+					# copiar la información del articulo a modificar.
+					articulo_modificar = self.listaCompra.loc[articulo.name,:]
 
-						# linea para omitir la advertencia de pandas.Dataframe sobre la reasignacion de valores
-						pd.options.mode.chained_assignment = None
+					# linea para omitir la advertencia de pandas.Dataframe sobre la reasignacion de valores
+					pd.options.mode.chained_assignment = None
 
-						# Realizar las modificaciones pertinentes.
-						articulo_modificar.at["CANTIDAD_COMPRA"] += 1
-						articulo_modificar.at["SUB_TOTAL"] = articulo_modificar.at["PRECIO_UNIT"] * articulo_modificar.at["CANTIDAD_COMPRA"]
-						articulo_modificar.at["UTILIDAD"] = int(articulo_modificar.at["UTILIDAD"]/(articulo_modificar.at["CANTIDAD_COMPRA"]-1)*articulo_modificar.at["CANTIDAD_COMPRA"])
-
-						# actualizar la lista con el articulo modificado.
-						self.listaCompra.loc[articulo.name, [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
-					else:
-						messagebox.showwarning(title = "STOCK AGOTADO", message = "No hay unidades de {} disponibles.".format(articulo["NOMBRE"].upper()))
+					# Realizar las modificaciones pertinentes.
+					articulo_modificar.loc["CANTIDAD_COMPRA"] += 1
+					articulo_modificar.loc["SUB_TOTAL"] = articulo_modificar.loc["PRECIO_UNIT"] * articulo_modificar.loc["CANTIDAD_COMPRA"]
+					articulo_modificar.loc["UTILIDAD"] = int(articulo_modificar.loc["UTILIDAD"])/int(articulo_modificar.loc["CANTIDAD_COMPRA"]-1)*int(articulo_modificar.loc["CANTIDAD_COMPRA"])
+					
+					# actualizar la lista con el articulo modificado.
+					self.listaCompra.loc[articulo.name, [ "NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]] = articulo_modificar
+				else:
+					messagebox.showwarning(title = "STOCK AGOTADO", message = "No hay unidades de {} disponibles.".format(articulo["NOMBRE"].upper()))
 
 			else:
 
@@ -1025,7 +1027,6 @@ class InterfazPrincipal:
 				self.listaCompra = pd.concat([self.listaCompra, df_articulo], axis= 0, ignore_index=False)
 
 				self.cantidadListaCompra.config(text=len(self.listaCompra))
-				# print(self.listaCompra)
 
 		else:
 
@@ -1037,47 +1038,80 @@ class InterfazPrincipal:
 		"""
 		INTERFAZ para visualizar y modificar el carrito de compra.
 		"""
+
 		# ?❒❒❒Cuando selecciono otra acción general (cambio de vista), la lista permanece intacta (¿? Analizar si es bueno o no)
 		# ?❒❒❒Mejora de diseños
 
 		# ▇ Cada que escriba una letra buscar coincidencia en el inventario (por medio de treevista)
+		# ?▇ Como obtengo el color de fondo (para el aviso de que no hay stock) y pintar el aviso de ese color > Dejé color verde para disponible
 		# ?❒ Cambiar el texto por íconos (que sugieran la acción) en los botones 
 		# ?❒ Cuando compro, sea en la general o en vista carrito, es necesario preguntar con cuánto paga
-		# ?❒ Como obtengo el color de fondo (para el aviso de que no hay stock) y pintar el aviso de ese color
+		# ?❒ Bloquear `ver carrito` cuando no haya nada que comprar
+		# ❒ Analizar la eficiencia de las estructuras de datos (DataFrame, Series, lista,...) en general, necesidad de uso y eficiencia de funciones
 		# ❒ Realizar documentación en funciones
-		# ❒ Analizar la eficiencia de las estructuras de datos en general, necesidad de uso y eficiencia de funciones
+		# ❒ Permitir la busqueda por marca tambien
+		# ❒ Cambiar el tipo de dato que contiene el ícono de lupa (investigar canvas)
+		# ❒ Crear entradas para ingresar con cuanto pago y otra para ingresar la cantidad del mismo articulo a agregar
 
+		def actualizarVista(*args):
+
+			"""
+			REFRESCA la interfaz de `VER CARRITO`
+			"""
+			# FORMATO <ttk.Treeview treeVista> = father(interfazArticulos), columns("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL")
+
+			# Sí está vacío el carrito (lista), redireccionamos al método diseñado para tal fin
+			if len(self.listaCompra) == 0:
+				vaciarCarrito()
+				return
+
+			# BORRAR listado de vista/arbol ppal
+			treeVista.delete(*treeVista.get_children())
+
+			# AGREGAR el carrito a vista/arbol ppal
+			contador = 1
+			for indice in self.listaCompra.index.tolist():
+				treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.loc[indice,"NOMBRE"],self.listaCompra.loc[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
+				contador += 1
+
+			# ACTUALIZAR el valor total del carrito y la cantidad de articulos (por diversidad)
+			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum()) 
+			self.cantidadListaCompra.config(text=len(self.listaCompra))
+
+			# SELECCIONAR (automácticamente) el primer artículo si se agregó desde la interfaz `VER CARRITO`, sino (interfaz general `COMPRAS`) el último
+			treeVista.selection_set(treeVista.get_children()[0]) if not args else treeVista.selection_set(treeVista.get_children()[-1])
 	
 
 		def seleccionArticulo(*args, **kwargs):
-			"""
-			HABILITACIÓN botones, al seleccionar (manual o automáticamente) desde la interfaz de modificación
-			"""
 
-			# Debe haber al menos un artículo en la lista de compra
-			
+			"""
+			HABILITACIÓN botones, al seleccionar (manual o automáticamente) desde la interfaz `VER CARRITO`
+			"""
+			# FORMATO <pd.DataFrame inventario_carrito> = columns("ARTICULO", "MARCA", "STOCK", "CARRITO"")
+
+			# Debe haber al menos un artículo en la lista de compra (lo que es igual en la vista/arbol ´treeVista´), de lo contrario no se ejecuta ésta función
 			if treeVista.get_children():
 
 				if not treeVista.selection():
 					treeVista.selection_set(treeVista.get_children()[-1])
 
 				codigo = treeVista.selection()[0]
-			
+
 				# Debe haber más en stock que en el carrito, de lo contrario desactivamos
-				if validacion[codigo][0] == validacion[codigo][1]:
+
+				if inventario_carrito.loc[codigo]["STOCK"] == inventario_carrito.loc[codigo]["CARRITO"]:
 					btnAumentar["state"]= "disabled"
 					lblAumentar.config(fg= "red")
 
+
 				else:
-					# ?Porqué tengo que asignar de nuevo el icono al botón
+					# ❒? Porqué tengo que asignar de nuevo el icono al botón
 
 					# configuramos el color del aviso para que se oculte si hay aún stock, camuflándolo con el fondo 
-					lblAumentar.config(fg= "gray")
+					lblAumentar.config(fg= "green")
 					btnVaciarCarrito["state"] = "normal"
 					btnAumentar["state"] = "normal"
 					btnAumentar["image"] = icon_mas
-					# print(icon)
-					# "normal", icon = btnAumentar["state"], btnAumentar["image"]
 					btnDisminuir["state"] = "normal"
 					btnDisminuir["image"] = icon_menos
 					btnEliminarSeleccion["state"] = "normal"
@@ -1093,49 +1127,6 @@ class InterfazPrincipal:
 			cursor.close()
 			conexion.close()
 			interfazArticulos.destroy()
-
-		# def actualizarVistaInterfaz(*args):
-
-		# 	# ▇ Incluir ésta vista como condicional de la de abajo
-
-		# 	treeVista.delete(*treeVista.get_children())
-
-		# 	# AGREGAR el carrito al listado
-		# 	contador = 1
-		# 	for indice in self.listaCompra.index.tolist():
-		# 		treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
-		# 		contador += 1
-
-		# 	# ACTUALIZAR el valor total del carrito y la cantidad de articulos (por diversidad)
-		# 	lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum())
-		# 	self.cantidadListaCompra.config(text=len(self.listaCompra))
-
-		def actualizarVista(*args):
-
-			"""
-			REFRESCA la interfaz de modificación
-			"""
-
-			# Sí está vacío el carrito, redireccionamos al método diseñado para tal fin
-			if len(self.listaCompra) == 0:
-				vaciarCarrito()
-				return
-
-			# BORRAR listado de la interfaz
-			treeVista.delete(*treeVista.get_children())
-
-			# AGREGAR el carrito al listado
-			contador = 1
-			for indice in self.listaCompra.index.tolist():
-				treeVista.insert("","end", iid = indice, values = (contador, indice, self.listaCompra.at[indice,"NOMBRE"],self.listaCompra.at[indice,"PRECIO_UNIT"], self.listaCompra.at[indice,"CANTIDAD_COMPRA"], self.listaCompra.at[indice,"SUB_TOTAL"]))
-				contador += 1
-
-			# ACTUALIZAR el valor total del carrito y la cantidad de articulos (por diversidad)
-			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum()) 
-			self.cantidadListaCompra.config(text=len(self.listaCompra))
-
-			# SELECCIONAR (automácticamente) el primer artículo o si se agregó desde la entrada, entonces ese artículo
-			treeVista.selection_set(treeVista.get_children()[0]) if not args else treeVista.selection_set(treeVista.get_children()[-1])
 
 		def vaciarCarrito():
 
@@ -1162,102 +1153,117 @@ class InterfazPrincipal:
 			# FORMATO: <Treeview treeVista> = COLUMNAS > ITEM "CODIGO" "NOMBRE" PRECIO CANTIDAD TOTAL, INDICE > "CODIGO"
 			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
 			codigo = treeVista.selection()[0]
+			# print("INICIO modificarCantidad:\n",inventario_carrito, end="\n\n")
 
 			# DETERMINAR botón presionado
 			# Sí se presionó éste botón es porque aún hay más en STOCK
 			if tipo == "MAS":
 
-				# MODIFICAR cantidad y sub_total del ítem en carrito
-				self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] += 1
-				self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
+			# FORMATO: <pd.DataFrame self.listaCompra> = columns = ["NOMBRE", "PRECIO_UNIT", "CANTIDAD_COMPRA", "SUB_TOTAL", "UTILIDAD"]
+				# MODIFICAR cantidad, sub_total y utilidad del ítem en carrito
+				self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"] += 1
+				self.listaCompra.loc[codigo, "SUB_TOTAL"] = self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.loc[codigo, "PRECIO_UNIT"]
+				self.listaCompra.loc[codigo, "UTILIDAD"] = self.listaCompra.loc[codigo, "UTILIDAD"] / (int(self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"]) - 1) * self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"]
 
-				# MODIFICAR el item correspondiente en la interfaz
+				# ACTUALIZAR el item correspondiente en la interfaz
 				valores = treeVista.item(codigo)["values"]
 				treeVista.item(codigo, values = [valores[0],valores[1],valores[2],valores[3], valores[4]+1,valores[3]*(valores[4]+1)])
 
 			else:
-				# si apenas hay una unidad del articulo que se desea eliminar, se pregunta y se elimina del carro
-				if validacion[codigo][1]==1:
+				# si apenas hay una unidad en carrito del articulo que se desea eliminar, se pregunta y de acuerdo se elimina del carrito
+				if inventario_carrito.loc[codigo]["CARRITO"]==1:
 
 					pregunta = messagebox.askquestion(title="CONFIRMACIÓN", message = "Deseas eliminar éste artículo del carrito?", parent=interfazArticulos)
 
 					if pregunta =="yes":
 
-						# eliminar del diccionario validación y del carrito
-						validacion.pop(codigo)
+						inventario_carrito.loc[codigo, "CARRITO"] = 0
 						self.listaCompra.drop(codigo, inplace=True)
-						# vaciarCarrito() if len(self.listaCompra) == 0 else actualizarVista()
 						actualizarVista()
 						return
 				else:
 					# MODIFICAR cantidad y sub_total del ítem en carrito
-					self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] -= 1
-					self.listaCompra.at[codigo, "SUB_TOTAL"] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.at[codigo, "PRECIO_UNIT"]
+					self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"] -= 1
+					self.listaCompra.loc[codigo, "SUB_TOTAL"] = self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"] * self.listaCompra.loc[codigo, "PRECIO_UNIT"]
 
-					# MODIFICAR el item correspondiente en la interfaz
+					# ACTUALIZAR el item correspondiente en la interfaz
 					valores = treeVista.item(codigo)["values"]
 					treeVista.item(codigo, values = [valores[0],valores[1],valores[2],valores[3], valores[4]-1,valores[3]*(valores[4]-1)])
 
 			# ACTUALIZAR validacion y la etiqueta del Total
-			validacion[codigo][1] = self.listaCompra.at[codigo, "CANTIDAD_COMPRA"]
+			# validacion[codigo][1] = self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"]
+			inventario_carrito.loc[codigo]["CARRITO"] = self.listaCompra.loc[codigo, "CANTIDAD_COMPRA"]
 			lblTotal["text"] = self.conversiones.puntoMilConSimbolo(self.listaCompra.loc[:,"SUB_TOTAL"].sum())
 
-			# DEJAR la selección del artículo habilitada
+			actualizarVista()
 			treeVista.selection_set(codigo)
 
+
 		def eliminarArticulo():
+
 			self.listaCompra.drop(treeVista.selection()[0], inplace=True)
 			actualizarVista()
 
 		def comprarInterfaz():
-			# ?QUE salga tambien la sgte pregunta en la interfaz 
+
 			self.compra()
-			messagebox.showinfo(title = "COMPRA", message = "Compra exitosa por valor de {}".format(lblTotal["text"]), parent=treeVista)
 			interfazArticulos.destroy()
 
 		def validarStock(nombre):
 			
 			# ❒ Ajustar medidas del treeSugerencia (ocupe el mismo ancho que la entrada y distribuir mejor ambas columnas, ademas de la altura)
+			# FORMATO <pd.DataFrame inventario_carrito> = columns(""ARTICULO", "MARCA", "STOCK", "CARRITO"")
+			# FORMATO <pd.DataFrame self.dfSugerencia> = columns("ARTICULO", "MARCA")
+			# FORMATO <ttk.Treeview treeSugerencia> = father(interfazArticulos), columns("ARTICULO", "MARCA), selectmode(BROWSE), show("tree")
 
-			treeSugerencia.delete(*treeSugerencia.get_children())
 			self.dfSugerencia.drop(self.dfSugerencia.index, inplace=True)
-			# print("buscando coincidencia con ésta busquedad: {}, cantidad: {}, tipo: {}".format(nombre,len(nombre),type(nombre)))
+			treeSugerencia.delete(*treeSugerencia.get_children())
+
 			if nombre != "":
-				# print("dentro condicional")
-				for llave, valor in inventario_total.iterrows():
-					if re.search(nombre.upper(), valor.at["ARTICULO"]) and (not llave in self.listaCompra.index):
-						self.dfSugerencia = pd.concat([self.dfSugerencia, valor.to_frame().T])
-						treeSugerencia.insert("", "end", iid = llave, values = valor.tolist())
+
+				# for llave, valor in inventario_total.iterrows():
+				for llave, valor in inventario_carrito.iterrows():
+
+					# VERIFICAR que coincida el cuadro de busqueda y además esté en el carrito
+					if re.search(nombre.upper(), valor.loc["ARTICULO"]) and valor.loc["CARRITO"]!=valor.loc["STOCK"]:
+
+						self.dfSugerencia = pd.concat([self.dfSugerencia, pd.Series(data=(valor.at["ARTICULO"], valor.at["MARCA"]), index=("ARTICULO", "MARCA"))])
+						# treeSugerencia.insert("", "end", iid = llave, values = valor.tolist())
+						treeSugerencia.insert("", "end", iid = llave, values = (valor.at["ARTICULO"], valor.at["MARCA"]))
+
 				if len(self.dfSugerencia) != 0:
+
 					treeSugerencia.place(relx=0.17, rely=0.16, relwidth=.28, relheight=.15)
-				# print("final condicional")
 
 			if len(self.dfSugerencia) == 0:
-				treeSugerencia.place_forget()
 
+				treeSugerencia.place_forget()
 				
 			return True
 
 		@conexiones.decoradorBaseDatos3
 		def seleccionSugerencia(*args, **kwargs):
+
 			if len(busqueda.get()) != 0:
+
 				codigoNuevo = treeSugerencia.selection()[0].upper()
 				self.anhadirArticulo(codigoNuevo)
 				kwargs["cursor"].execute("SELECT STOCK FROM INVENTARIO WHERE CODIGO = (?)", (codigoNuevo,))
 				cantidad_stock = kwargs["cursor"].fetchone()[0]
-				# FORMATO: validacion = { "codigo_articulo" : [cantidad_STOCK, cantidad_CARRITO]}
-				validacion.update({codigoNuevo: [cantidad_stock, 1]})
+				inventario_carrito.at[codigoNuevo, "CARRITO"] = 1
+
 				actualizarVista("SUGERENCIA")
-				# actualizarVistaInterfaz()
 				entBusqueda.delete(0, "end")
 
 
+		# +++ DEFINICION VARIABLES +++
+
+		# VARIABLES DE LLAMADA; la propia instancia de clase, además de los pasados desde el decorador
 		self = args[0]
 		conexion = kwargs["conexion"]
 		cursor = kwargs["cursor"]
 
-		busqueda = StringVar()
-
+		# CREACIÓN VENTANA de carrito. Asignación de propiedades
 		interfazArticulos = Toplevel()
 		interfazArticulos.bind("<Escape>", lambda event : salir(event))
 
@@ -1265,85 +1271,19 @@ class InterfazPrincipal:
 		interfazArticulos.grab_set()
 		interfazArticulos.geometry("500x500")
 
+		# Corresponde a la entrada de usuario
+		busqueda = StringVar()
+
+		# Contendrá las coincidencias con `busqueda` o `entBusqueda`
+		# FORMATO <pd.DataFrame self.dfSugerencia> = columns("ARTICULO", "MARCA")
+		self.dfSugerencia = pd.DataFrame(columns=("ARTICULO", "MARCA"))
+
+		# DECLARAMOS VISTAS/ARBOL; principal y sugerencias
+
+		# FORMATO <ttk.Treeview treeVista> = father(interfazArticulos), columns("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL")
 		treeVista = ttk.Treeview(interfazArticulos, columns = ("ITEM", "CODIGO", "NOMBRE", "PRECIO", "CANTIDAD", "TOTAL"))
 		treeVista.place(relx=0.02, relwidth=0.85, rely=0.18, relheight= 0.8)
 		treeVista.bind("<<TreeviewSelect>>", lambda event:seleccionArticulo(event))
-		
-		self.dfSugerencia = pd.DataFrame(columns=("ARTICULO", "MARCA"))
-
-		# CREACION lista de sugerencias
-		treeSugerencia = ttk.Treeview(interfazArticulos, columns= ("ARTICULO", "MARCA"), selectmode=BROWSE, show="tree")
-
-		treeSugerencia.bind("<<TreeviewSelect>>", lambda event:seleccionSugerencia(event))
-
-		treeSugerencia.column("#0", width=0, stretch=NO)
-		treeSugerencia.column("ARTICULO", anchor = "center", width=65, stretch=NO)
-		treeSugerencia.column("MARCA",anchor = "center", width=65, stretch=NO)
-		# treeSugerencia.column("CARACTERISTICA",width=0,anchor = "center", stretch="yes")
-
-		treeSugerencia.heading("ARTICULO", text="ARTICULO")
-		treeSugerencia.heading("MARCA", text="MARCA")
-		# treeSugerenia.heading("CARACTERISTICA", text="CARACTERISTICA")
-
-
-
-		# Label(interfazArticulos, text = "CANTIDAD", width = 9).place(relx=0.88, rely=0.02)
-
-
-		# ICONOS
-		mas = Image.open("iconos/mas.png")
-		mas.thumbnail((20, 20)) 
-		icon_mas = ImageTk.PhotoImage(mas)
-
-		menos = Image.open("iconos/menos.png")
-		menos.thumbnail((20, 20))
-		icon_menos = ImageTk.PhotoImage(menos)
-
-		lupa = Image.open("iconos/lupa.png")
-		lupa.thumbnail((20, 20))
-		icon_lupa = ImageTk.PhotoImage(lupa)
-
-		# BOTONES Y LABEL'S
-
-		# iconLupa = Button(interfazArticulos, imaage=icon_lupa, borderwidth=0)
-		iconLupa = Button(interfazArticulos, text="icono de\n lupa", borderwidth=0)
-		iconLupa.place(relx=0.04, rely=0.12)
-
-		entBusqueda = Entry(interfazArticulos, width=30, textvariable = busqueda)
-		entBusqueda.place(relx=0.17, rely=0.12)
-		entBusqueda.config(validate="key", validatecommand=(entBusqueda.register(validarStock), "%P"))
-
-		# *DEBE ser el color del fondo exactamente, y modificarlo en el método <seleccionArticulo>
-		lblAumentar = Label(interfazArticulos, text="NO HAY\n STOCK", fg="gray")
-		lblAumentar.place(relx= 0.88, rely=0.16)
-
-		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
-		btnAumentar.place(relx=0.92, rely=0.24)
-
-		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
-		btnDisminuir.place(relx=0.92, rely=0.32)
-
-		# lblAdvertencia =Label(interfazArticulos, text="NO HAY MÁS STOCK", fg="red")
-		# lblAdvertencia.place(relx=0.88, rely=0.06)
-		# lblAdvertencia.place_forget()
-
-		# btnAumentar.bind("<Enter>", lambda event : lblAdvertencia.place(relx=0.88, rely=0.06))
-		# btnAumentar.bind("<Leave>", lambda event : lblAdvertencia.place_forget())
-
-
-		btnComprarCarrito = Button(interfazArticulos, text = "COMPRAR", width= 9, command = comprarInterfaz)
-		btnComprarCarrito.place(relx = 0.04, rely = 0.03)
-
-		btnEliminarSeleccion = Button(interfazArticulos, text = "ELIMINAR", width= 9, command= eliminarArticulo)
-		btnEliminarSeleccion.place(relx=0.20, rely= 0.03)
-
-		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR CARRITO", width = 12, command = vaciarCarrito)
-		btnVaciarCarrito.place(relx= 0.36, rely = 0.03)
-
-		Label(interfazArticulos, text = "TOTAL:", width = 10).place(relx = 0.60, rely = 0.03)
-
-		lblTotal = Label(interfazArticulos)
-		lblTotal.place(relx = 0.77, rely = 0.03)
 
 		treeVista.column("#0", width=0, stretch=NO)
 		treeVista.column("ITEM", width = 10, anchor = "center")
@@ -1360,35 +1300,86 @@ class InterfazPrincipal:
 		treeVista.heading("CANTIDAD", text = "CANTIDAD")
 		treeVista.heading("TOTAL", text = "TOTAL")
 
-		
-		actualizarVista()
+		# FORMATO <ttk.Treeview treeSugerencia> = father(interfazArticulos), columns("ARTICULO", "MARCA), selectmode(BROWSE), show("tree")
+		treeSugerencia = ttk.Treeview(interfazArticulos, columns= ("ARTICULO", "MARCA"), selectmode=BROWSE, show="tree")
+		treeSugerencia.bind("<<TreeviewSelect>>", lambda event:seleccionSugerencia(event))
 
-		codigos = self.listaCompra.index.tolist()
-		cursor.execute("SELECT CODIGO, STOCK FROM INVENTARIO WHERE CODIGO IN ({})".format(', '.join(['?'] * len(codigos))), codigos)
+		treeSugerencia.column("#0", width=0, stretch=NO)
+		treeSugerencia.column("ARTICULO", anchor = "center", width=65, stretch=NO)
+		treeSugerencia.column("MARCA",anchor = "center", width=65, stretch=NO)
 
-		# cada que se ABRE ésta interfaz no se añadirá más artículos, por tanto se crea diccionario que contenga la cantidad_STOCK
-		# ...y la cantidad_CARRITO para trabajar con esos datos en los métodos locales
+		treeSugerencia.heading("ARTICULO", text="ARTICULO")
+		treeSugerencia.heading("MARCA", text="MARCA")
 
-		# Diccionario con el stock de la BBDD
-		# inventario = {codigo_articulo: stock_inventario}
-		inventario = {}
-		for i in cursor.fetchall():
-			inventario.update({i[0]:i[1]})
+		# ICONOS
 
+		mas = Image.open("iconos/mas.png")
+		mas.thumbnail((20, 20)) 
+		icon_mas = ImageTk.PhotoImage(mas)
 
-		# FORMATO: validacion = { "codigo_articulo" : [cantidad_STOCK, cantidad_CARRITO]}
-		validacion = {}
-		for llave, valor in self.listaCompra.iterrows():
-			for i in inventario:
-				if llave == i:
-					validacion.update({i : [inventario[i], valor["CANTIDAD_COMPRA"]]})
-				continue
+		menos = Image.open("iconos/menos.png")
+		menos.thumbnail((20, 20))
+		icon_menos = ImageTk.PhotoImage(menos)
 
-		inventario_total = pd.DataFrame(columns=("ARTICULO", "MARCA", "STOCK"))
+		lupa = Image.open("iconos/lupa.png")
+		lupa.thumbnail((20, 20))
+		icon_lupa = ImageTk.PhotoImage(lupa)
+
+		# BOTONES, LABEL'S, ENTRY'S
+
+		entBusqueda = Entry(interfazArticulos, width=30, textvariable = busqueda)
+		entBusqueda.place(relx=0.17, rely=0.12)
+		entBusqueda.config(validate="key", validatecommand=(entBusqueda.register(validarStock), "%P"))
+
+		# Contiene el estado del inventario del artículo seleccionado
+		lblAumentar = Label(interfazArticulos, text="STOCK", fg="green", font = ("Helveltica", 12, "bold"))
+		lblAumentar.place(relx= 0.88, rely=0.16)
+
+		btnAumentar = Button(interfazArticulos, image=icon_mas, borderwidth=0,command=lambda : modificarCantidad("MAS"))
+		btnAumentar.place(relx=0.92, rely=0.24)
+
+		btnDisminuir = Button(interfazArticulos, image = icon_menos, borderwidth=0, command= lambda : modificarCantidad("MENOS"))
+		btnDisminuir.place(relx=0.92, rely=0.32)
+
+		iconLupa = Button(interfazArticulos, text="icono de\n lupa", borderwidth=0)
+		iconLupa.place(relx=0.04, rely=0.12)
+
+		btnComprarCarrito = Button(interfazArticulos, text = "COMPRAR", width= 9, command = comprarInterfaz)
+		btnComprarCarrito.place(relx = 0.04, rely = 0.03)
+
+		btnEliminarSeleccion = Button(interfazArticulos, text = "ELIMINAR", width= 9, command= eliminarArticulo)
+		btnEliminarSeleccion.place(relx=0.20, rely= 0.03)
+
+		btnVaciarCarrito = Button(interfazArticulos, text = "VACIAR CARRITO", width = 12, command = vaciarCarrito)
+		btnVaciarCarrito.place(relx= 0.36, rely = 0.03)
+
+		Label(interfazArticulos, text = "TOTAL:", width = 10).place(relx = 0.60, rely = 0.03)
+		lblTotal = Label(interfazArticulos)
+		lblTotal.place(relx = 0.77, rely = 0.03)
+
+		# FORMATO <pd.DataFrame inventario_carrito> = columns(""ARTICULO", "MARCA", "STOCK", "CARRITO"")
+		inventario_carrito = pd.DataFrame(columns=("ARTICULO", "MARCA", "STOCK", "CARRITO"))	
+
 		cursor.execute("SELECT CODIGO, ARTICULO, MARCA, STOCK FROM INVENTARIO")
-		for i in cursor.fetchall():
-			inventario_total = pd.concat([inventario_total, pd.Series(data = i[1:], index=["ARTICULO", "MARCA", "STOCK"], name=i[0]).to_frame().T], axis=0)
-		# print(inventario_total)
+		extraccion = cursor.fetchall()
+		
+		# CONVERTIR tuplas en listas, para mejor manejo
+		for i in range(len(extraccion)):
+			extraccion[i] = list(extraccion[i])
+
+		# AGREGAR la cantidad que hay en carrito (de lo contrario 0)
+		for i in range(len(extraccion)):
+			if extraccion[i][0] in self.listaCompra.index:
+				extraccion[i].append(self.listaCompra.loc[extraccion[i][0], "CANTIDAD_COMPRA"])
+			else:
+				extraccion[i].append(0)
+
+		# CONVERTIR lista en DataFrame
+		for i in extraccion:
+			inventario_carrito = pd.concat([inventario_carrito, pd.Series(data = i[1:], index=["ARTICULO", "MARCA", "STOCK", "CARRITO"], name=i[0]).to_frame().T], axis=0)
+
+		# ABRIMOS (se abre siempre y cuando haya un artículo en la lista compra)
+		actualizarVista()
 
 
 	# def generarCodigoCliente(self,cursor):
@@ -1559,8 +1550,6 @@ class InterfazPrincipal:
 			if self.facturaImpresa.get():
 				print("imprimir factura")
 				self.facturaImpresa.set(False)
-
-
 
 			self.borrarCampos()
 
